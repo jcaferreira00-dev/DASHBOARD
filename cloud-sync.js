@@ -50,7 +50,9 @@ try {
 let pararDeOuvirSnapshot = null;
 
 function referenciaDoUsuario(uid) {
-  return doc(db, "usuarios", uid);
+  // Coleção exclusiva deste app — cada app da mesma conta Firebase
+  // deve usar seu próprio nome de coleção aqui pra não sobrescrever os outros.
+  return doc(db, "dashboard_usuarios", uid);
 }
 
 // ===========================
