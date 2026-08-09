@@ -1,5 +1,10 @@
-const CACHE = "carteira-v1";
-const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const CACHE = "carteira-v2";
+const ASSETS = [
+  "./", "./index.html", "./manifest.json", "./cloud-sync.js",
+  "./icon-192.png", "./icon-512.png",
+  "./icon-192-maskable.png", "./icon-512-maskable.png",
+  "./apple-touch-icon.png", "./favicon-32x32.png", "./favicon-16x16.png", "./favicon.ico"
+];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(

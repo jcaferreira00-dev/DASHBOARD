@@ -1,0 +1,90 @@
+{
+  "categories": [
+    { "id": "acoes", "label": "Ações", "color": "#6FA8DC", "type": "market", "unit": "ação", "builtIn": true },
+    { "id": "fiis", "label": "FIIs", "color": "#7FB88B", "type": "market", "unit": "FII", "builtIn": true },
+    { "id": "previdencia", "label": "Previdência", "color": "#C6A15B", "type": "saldo", "unit": "plano", "builtIn": true, "entradaLabel": "Aporte", "saidaLabel": null },
+    { "id": "crypto", "label": "Crypto", "color": "#B98CCB", "type": "market", "unit": "ativo", "builtIn": true },
+    { "id": "fgts", "label": "FGTS", "color": "#5FB3B3", "type": "saldo", "unit": "conta", "builtIn": true, "entradaLabel": "Depósito", "saidaLabel": "Saque" },
+    { "id": "cat_rendafixa_demo", "label": "Renda Fixa", "color": "#E0A97E", "type": "saldo", "unit": "título", "builtIn": false, "entradaLabel": "Aporte", "saidaLabel": "Resgate" }
+  ],
+  "data": {
+    "acoes": {
+      "positions": [
+        { "id": "pos_petr4", "ticker": "PETR4", "qtd": 200, "precoMedio": 34.10, "precoAtual": 38.72 },
+        { "id": "pos_vale3", "ticker": "VALE3", "qtd": 120, "precoMedio": 63.40, "precoAtual": 59.15 },
+        { "id": "pos_itub4", "ticker": "ITUB4", "qtd": 300, "precoMedio": 28.90, "precoAtual": 33.45 },
+        { "id": "pos_wege3", "ticker": "WEGE3", "qtd": 150, "precoMedio": 38.20, "precoAtual": 41.08 }
+      ],
+      "history": [
+        { "id": "h1", "positionId": "pos_petr4", "tipo": "compra", "qtd": 120, "preco": 32.80, "data": "2025-02-10" },
+        { "id": "h2", "positionId": "pos_petr4", "tipo": "compra", "qtd": 80, "preco": 35.95, "data": "2025-06-18" },
+        { "id": "h3", "positionId": "pos_vale3", "tipo": "compra", "qtd": 120, "preco": 63.40, "data": "2025-03-05" },
+        { "id": "h4", "positionId": "pos_itub4", "tipo": "compra", "qtd": 200, "preco": 27.50, "data": "2025-01-22" },
+        { "id": "h5", "positionId": "pos_itub4", "tipo": "compra", "qtd": 100, "preco": 31.10, "data": "2025-07-02" },
+        { "id": "h6", "positionId": "pos_wege3", "tipo": "compra", "qtd": 150, "preco": 38.20, "data": "2025-04-14" }
+      ]
+    },
+    "fiis": {
+      "positions": [
+        { "id": "pos_mxrf11", "ticker": "MXRF11", "qtd": 800, "precoMedio": 10.15, "precoAtual": 10.62 },
+        { "id": "pos_hglg11", "ticker": "HGLG11", "qtd": 60, "precoMedio": 162.30, "precoAtual": 168.90 },
+        { "id": "pos_knri11", "ticker": "KNRI11", "qtd": 90, "precoMedio": 148.00, "precoAtual": 143.50 }
+      ],
+      "history": [
+        { "id": "h7", "positionId": "pos_mxrf11", "tipo": "compra", "qtd": 500, "preco": 9.98, "data": "2025-01-15" },
+        { "id": "h8", "positionId": "pos_mxrf11", "tipo": "compra", "qtd": 300, "preco": 10.42, "data": "2025-05-20" },
+        { "id": "h9", "positionId": "pos_hglg11", "tipo": "compra", "qtd": 60, "preco": 162.30, "data": "2025-02-28" },
+        { "id": "h10", "positionId": "pos_knri11", "tipo": "compra", "qtd": 90, "preco": 148.00, "data": "2025-03-19" }
+      ]
+    },
+    "previdencia": {
+      "items": [
+        { "id": "prev_pgbl", "nome": "PGBL Previdência", "subtitulo": "Itaú", "saldoAtual": 28450.00 },
+        { "id": "prev_vgbl", "nome": "VGBL Prime", "subtitulo": "XP", "saldoAtual": 12980.00 }
+      ],
+      "moves": [
+        { "id": "m1", "itemId": "prev_pgbl", "tipo": "entrada", "valor": 800, "data": "2025-01-05" },
+        { "id": "m2", "itemId": "prev_pgbl", "tipo": "entrada", "valor": 800, "data": "2025-03-05" },
+        { "id": "m3", "itemId": "prev_pgbl", "tipo": "entrada", "valor": 800, "data": "2025-05-05" },
+        { "id": "m4", "itemId": "prev_pgbl", "tipo": "entrada", "valor": 800, "data": "2025-07-05" },
+        { "id": "m5", "itemId": "prev_vgbl", "tipo": "entrada", "valor": 500, "data": "2025-02-10" },
+        { "id": "m6", "itemId": "prev_vgbl", "tipo": "entrada", "valor": 500, "data": "2025-06-10" }
+      ]
+    },
+    "crypto": {
+      "positions": [
+        { "id": "pos_btc", "ticker": "BTC", "qtd": 0.085, "precoMedio": 310000, "precoAtual": 342000 },
+        { "id": "pos_eth", "ticker": "ETH", "qtd": 1.4, "precoMedio": 12800, "precoAtual": 11950 }
+      ],
+      "history": [
+        { "id": "h11", "positionId": "pos_btc", "tipo": "compra", "qtd": 0.05, "preco": 298000, "data": "2025-02-01" },
+        { "id": "h12", "positionId": "pos_btc", "tipo": "compra", "qtd": 0.035, "preco": 328000, "data": "2025-06-11" },
+        { "id": "h13", "positionId": "pos_eth", "tipo": "compra", "qtd": 1.4, "preco": 12800, "data": "2025-04-20" }
+      ]
+    },
+    "fgts": {
+      "items": [
+        { "id": "fgts_klabin", "nome": "Klabin S.A.", "subtitulo": "Conta vinculada", "saldoAtual": 9840.00 }
+      ],
+      "moves": [
+        { "id": "m7", "itemId": "fgts_klabin", "tipo": "entrada", "valor": 420, "data": "2025-01-07" },
+        { "id": "m8", "itemId": "fgts_klabin", "tipo": "entrada", "valor": 420, "data": "2025-02-07" },
+        { "id": "m9", "itemId": "fgts_klabin", "tipo": "entrada", "valor": 420, "data": "2025-03-07" },
+        { "id": "m10", "itemId": "fgts_klabin", "tipo": "entrada", "valor": 420, "data": "2025-04-07" },
+        { "id": "m11", "itemId": "fgts_klabin", "tipo": "entrada", "valor": 420, "data": "2025-05-07" },
+        { "id": "m12", "itemId": "fgts_klabin", "tipo": "entrada", "valor": 420, "data": "2025-06-07" },
+        { "id": "m13", "itemId": "fgts_klabin", "tipo": "entrada", "valor": 420, "data": "2025-07-07" }
+      ]
+    },
+    "cat_rendafixa_demo": {
+      "items": [
+        { "id": "rf_cdb", "nome": "CDB Banco Inter", "subtitulo": "120% CDI · vencimento 2027", "saldoAtual": 15600.00 },
+        { "id": "rf_tesouro", "nome": "Tesouro Selic 2029", "subtitulo": "Tesouro Direto", "saldoAtual": 8920.00 }
+      ],
+      "moves": [
+        { "id": "m14", "itemId": "rf_cdb", "tipo": "entrada", "valor": 15000, "data": "2025-01-10" },
+        { "id": "m15", "itemId": "rf_tesouro", "tipo": "entrada", "valor": 8500, "data": "2025-03-22" }
+      ]
+    }
+  }
+}
