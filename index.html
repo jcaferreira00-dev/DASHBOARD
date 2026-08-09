@@ -245,7 +245,10 @@
   .tools-section{ margin-bottom:22px; }
   .tools-section h4{ font-family:'Fraunces'; font-weight:500; font-size:14.5px; margin:0 0 9px; color:var(--cream); }
   .tools-section p.desc{ font-size:12px; color:var(--muted); margin:0 0 10px; line-height:1.5; }
-  .tools-row{ display:flex; gap:8px; }
+  .tools-row{ display:flex; gap:8px; align-items:center; }
+  .tools-row input{ flex:1; }
+  .tools-row .btn, .tools-row .btn-sm{ flex:1; }
+  .tools-row .btn[style*="flex:none"]{ flex:none; }
   .category-manage-item{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--rule); font-size:13px; }
   .category-manage-item:last-child{ border-bottom:none; }
   .category-manage-item .left{ display:flex; align-items:center; gap:8px; }
@@ -337,6 +340,9 @@ function defaultState(){
       previdencia: { items: [], moves: [] },
       crypto:      { positions: [], history: [] },
       fgts:        { items: [], moves: [] },
+    },
+    settings: {
+      brapiTokens: []
     }
   };
 }
@@ -359,8 +365,10 @@ function migrateOldState(old){
 }
 function normalizeState(s){
   if (!s) return defaultState();
-  if (isOldFormat(s)) return migrateOldState(s);
+  if (isOldFormat(s)) s = migrateOldState(s);
   if (!s.categories || !s.data) return defaultState();
+  if (!s.settings) s.settings = { brapiTokens: [] };
+  if (!s.settings.brapiTokens) s.settings.brapiTokens = [];
   return s;
 }
 
@@ -401,6 +409,7 @@ const fmtBRL = (n) => (n<0?'-':'') + 'R$ ' + Math.abs(n).toLocaleString('pt-BR',
 const fmtBRLShort = (n) => (n<0?'-':'') + 'R$ ' + Math.abs(n).toLocaleString('pt-BR',{minimumFractionDigits:0, maximumFractionDigits:0});
 const fmtPct = (n) => (n>0?'+':'') + n.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2}) + '%';
 const fmtDate = (iso) => { const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; };
+const fmtDateTime = (iso) => { try{ return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return '—'; } };
 const fmtNum = (n, dec=0) => n.toLocaleString('pt-BR',{minimumFractionDigits:dec, maximumFractionDigits:dec});
 function arrowIcon(positive, size=15){
   return `<span class="material-symbols-outlined icn-arrow" style="font-size:${size}px">${positive?'arrow_upward':'arrow_downward'}</span>`;
@@ -574,6 +583,7 @@ function renderMarketPanel(cat){
             <input type="number" step="0.01" id="price-${pos.id}" value="${pos.precoAtual}">
             <button class="btn ghost btn-sm" onclick="updatePrice('${cat.id}','${pos.id}')">Salvar</button>
           </div>
+          <div class="mini-stat" style="margin-bottom:8px">Cotação atualizada em<b>${pos.atualizadoEm ? fmtDateTime(pos.atualizadoEm) : 'nunca via API'}</b></div>
           <div class="row-actions">
             <button class="btn ghost btn-sm" onclick="openTxModal('${cat.id}','${pos.id}','compra')">+ Compra</button>
             <button class="btn ghost btn-sm" onclick="openTxModal('${cat.id}','${pos.id}','venda')">+ Venda</button>
@@ -1032,9 +1042,19 @@ function openTools(){
 
     <div class="tools-section">
       <h4>Cotações automáticas</h4>
-      <p class="desc">Busca o preço atual de Ações e FIIs (brapi.dev) e Crypto (CoinGecko) e atualiza suas posições.</p>
+      <p class="desc">Busca o preço atual de Ações e FIIs (brapi.dev) e Crypto (CoinGecko). Sempre atualiza primeiro o ativo com a cotação mais antiga, e sorteia um token de API a cada tentativa — se um estiver no limite, tenta outro automaticamente.</p>
       <button class="btn ghost" style="width:100%" onclick="fetchAllQuotes()">Atualizar cotações agora</button>
       <p class="desc" id="quotesStatus" style="margin-top:8px;"></p>
+    </div>
+
+    <div class="tools-section">
+      <h4>Tokens da API (brapi.dev)</h4>
+      <p class="desc">Cadastre quantos tokens quiser. Cada tentativa de cotação sorteia um deles aleatoriamente, distribuindo as chamadas entre eles pra render mais requisições por dia.</p>
+      <div id="brapiTokenList"></div>
+      <div class="tools-row" style="margin-top:10px">
+        <input type="text" id="newBrapiToken" placeholder="Cole o token aqui">
+        <button class="btn ghost btn-sm" style="flex:none" onclick="addBrapiToken()">Adicionar</button>
+      </div>
     </div>
 
     <div class="tools-section">
@@ -1051,7 +1071,66 @@ function openTools(){
       <h4>Guias personalizadas</h4>
       ${catListHtml}
     </div>
+
+    <div class="tools-section">
+      <h4>Zona de risco</h4>
+      <p class="desc">Remove todas as posições, saldos e lançamentos de todas as guias. As guias, os tokens de API e a conta permanecem intactos.</p>
+      <button class="btn danger" style="width:100%" onclick="clearPortfolio()">Limpar carteira</button>
+    </div>
   `, {large:true});
+  renderBrapiTokenList();
+}
+
+/* =========================================================
+   TOKENS DA API (brapi.dev)
+========================================================= */
+function maskToken(t){
+  if (!t || t.length <= 8) return t || '';
+  return t.slice(0,4) + '••••••' + t.slice(-4);
+}
+function renderBrapiTokenList(){
+  const el = document.getElementById('brapiTokenList');
+  if (!el) return;
+  const tokens = STATE.settings.brapiTokens || [];
+  el.innerHTML = tokens.length ? tokens.map((t,i)=>`
+    <div class="category-manage-item">
+      <span class="left mono">${maskToken(t)}</span>
+      <button class="btn danger btn-sm" style="flex:none;padding:5px 10px;" onclick="removeBrapiToken(${i})"><span class="material-symbols-outlined icn-del">close</span></button>
+    </div>`).join('') : '<p class="desc">Nenhum token cadastrado ainda. Sem token, a busca de cotações de Ações/FIIs pode falhar por limite da API.</p>';
+}
+function addBrapiToken(){
+  const input = document.getElementById('newBrapiToken');
+  const val = input.value.trim();
+  if (!val) return;
+  STATE.settings.brapiTokens = STATE.settings.brapiTokens || [];
+  if (STATE.settings.brapiTokens.includes(val)){ input.value=''; return; }
+  STATE.settings.brapiTokens.push(val);
+  input.value = '';
+  DB.save(STATE);
+  renderBrapiTokenList();
+}
+function removeBrapiToken(i){
+  STATE.settings.brapiTokens.splice(i,1);
+  DB.save(STATE);
+  renderBrapiTokenList();
+}
+
+/* =========================================================
+   LIMPAR CARTEIRA
+========================================================= */
+function clearPortfolio(){
+  const totalItens = STATE.categories.reduce((s,c)=>{
+    const d = STATE.data[c.id] || {};
+    return s + (d.positions?d.positions.length:0) + (d.items?d.items.length:0);
+  }, 0);
+  if (totalItens === 0){ alert('Sua carteira já está vazia.'); return; }
+  if (!confirm(`Isso vai apagar ${totalItens} posição(ões)/item(ns) e todo o histórico de todas as guias. Essa ação não pode ser desfeita. Continuar?`)) return;
+  if (!confirm('Confirme mais uma vez: tem certeza que quer zerar a carteira inteira?')) return;
+  STATE.categories.forEach(c=>{
+    STATE.data[c.id] = c.type === 'market' ? { positions: [], history: [] } : { items: [], moves: [] };
+  });
+  closeModal();
+  persist();
 }
 
 function exportBackup(){
@@ -1082,35 +1161,69 @@ function importBackup(evt){
 
 const COINGECKO_IDS = { BTC:'bitcoin', ETH:'ethereum', SOL:'solana', ADA:'cardano', XRP:'ripple', DOGE:'dogecoin', BNB:'binancecoin', USDT:'tether', MATIC:'matic-network', LTC:'litecoin', TRX:'tron', DOT:'polkadot', AVAX:'avalanche-2' };
 
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+function shuffleArray(arr){
+  const a = [...arr];
+  for (let i=a.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+// Tenta cada token em ordem aleatória — se um falhar (limite atingido, erro etc.), tenta o próximo.
+async function fetchBrapiQuote(ticker, tokens){
+  const pool = (tokens && tokens.length) ? shuffleArray(tokens) : [null];
+  for (const token of pool){
+    try{
+      const url = `https://brapi.dev/api/quote/${ticker}` + (token ? `?token=${encodeURIComponent(token)}` : '');
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const json = await res.json();
+      const r = (json.results||[])[0];
+      if (r && r.regularMarketPrice) return r.regularMarketPrice;
+    }catch(e){ /* tenta o próximo token do pool */ }
+  }
+  return null;
+}
+
 async function fetchAllQuotes(){
   const statusEl = document.getElementById('quotesStatus');
-  if (statusEl) statusEl.textContent = 'Buscando cotações...';
+  const tokens = STATE.settings.brapiTokens || [];
+
+  // Ações/FIIs (e outras guias tipo "mercado" que não sejam crypto), sempre começando
+  // pelo ativo cuja cotação está há mais tempo sem atualizar.
+  const brapiCats = STATE.categories.filter(c=>c.type==='market' && c.id!=='crypto');
+  let brapiPositions = [];
+  brapiCats.forEach(cat=>{
+    STATE.data[cat.id].positions.forEach(pos=> brapiPositions.push(pos));
+  });
+  brapiPositions.sort((a,b)=> (a.atualizadoEm||'').localeCompare(b.atualizadoEm||''));
+
   let updated = 0; const failed = [];
 
-  const marketCats = STATE.categories.filter(c=>c.type==='market' && c.id!=='crypto');
-  for (const cat of marketCats){
-    const tickers = STATE.data[cat.id].positions.map(p=>p.ticker);
-    if (!tickers.length) continue;
-    try{
-      const res = await fetch(`https://brapi.dev/api/quote/${tickers.join(',')}`);
-      const json = await res.json();
-      (json.results||[]).forEach(r=>{
-        const pos = STATE.data[cat.id].positions.find(p=>p.ticker===r.symbol);
-        if (pos && r.regularMarketPrice){ pos.precoAtual = r.regularMarketPrice; updated++; }
-      });
-    }catch(e){ failed.push(cat.label); }
+  for (let i=0; i<brapiPositions.length; i++){
+    const pos = brapiPositions[i];
+    if (statusEl) statusEl.textContent = `Atualizando ${i+1} de ${brapiPositions.length} — ${pos.ticker}...`;
+    const preco = await fetchBrapiQuote(pos.ticker, tokens);
+    if (preco){ pos.precoAtual = preco; pos.atualizadoEm = new Date().toISOString(); updated++; }
+    else failed.push(pos.ticker);
+    if (i < brapiPositions.length-1) await sleep(280);
   }
 
+  // Crypto via CoinGecko (não usa token)
   if (STATE.data.crypto){
     const positions = STATE.data.crypto.positions;
     const ids = [...new Set(positions.map(p=>COINGECKO_IDS[p.ticker.toUpperCase()]).filter(Boolean))];
     if (ids.length){
+      if (statusEl) statusEl.textContent = 'Atualizando crypto...';
       try{
         const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=brl`);
         const json = await res.json();
         positions.forEach(p=>{
           const cgId = COINGECKO_IDS[p.ticker.toUpperCase()];
-          if (cgId && json[cgId] && json[cgId].brl){ p.precoAtual = json[cgId].brl; updated++; }
+          if (cgId && json[cgId] && json[cgId].brl){ p.precoAtual = json[cgId].brl; p.atualizadoEm = new Date().toISOString(); updated++; }
+          else if (cgId) failed.push(p.ticker);
         });
       }catch(e){ failed.push('Crypto'); }
     }
@@ -1118,8 +1231,8 @@ async function fetchAllQuotes(){
 
   if (statusEl){
     statusEl.textContent = updated>0
-      ? `${updated} posição(ões) atualizada(s).${failed.length ? ' Falhou: '+failed.join(', ') : ''}`
-      : `Não foi possível buscar cotações agora.${failed.length ? ' ('+failed.join(', ')+')' : ''}`;
+      ? `${updated} cotação(ões) atualizada(s).${failed.length ? ' Sem sucesso: '+failed.join(', ') : ''}`
+      : `Não foi possível atualizar agora.${failed.length ? ' ('+failed.join(', ')+')' : ''}`;
   }
   persist();
 }
