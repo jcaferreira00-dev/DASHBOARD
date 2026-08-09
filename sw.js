@@ -1,4 +1,4 @@
-const CACHE = "carteira-v2";
+const CACHE = "carteira-v3";
 const ASSETS = [
   "./", "./index.html", "./manifest.json", "./cloud-sync.js",
   "./icon-192.png", "./icon-512.png",
