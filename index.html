@@ -262,6 +262,39 @@
     .summary-cards{ grid-template-columns: 1fr 1fr; }
     .summary-cards .card:last-child{ grid-column: span 2; }
   }
+
+  /* Em telas grandes, o modal "large" (usado pelo Dashboard) vira um
+     diálogo centralizado, bem maior, com painel extra de detalhes */
+  .dash-desktop-panel{ display:none; }
+  @media (min-width:720px){
+    .overlay{ align-items:center; }
+    .modal.large{
+      width: 94%;
+      max-width: 960px;
+      max-height: 90vh;
+      border-radius: 18px;
+    }
+    .modal.large .dash-donut-wrap{
+      flex-direction: row;
+      justify-content: center;
+      gap: 32px;
+    }
+    .modal.large .dash-legend{ max-width: 320px; }
+    .dash-desktop-panel{ display:block; margin-top:22px; }
+  }
+
+  .dash-summary-row{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+  .dash-summary-card{ background:var(--bg); border:1px solid var(--rule); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:4px; }
+  .dash-summary-card .lbl{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .dash-summary-card .val{ font-size:17px; font-weight:700; color:var(--cream); }
+
+  .dash-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .dash-table th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:600; padding:0 10px 8px; border-bottom:1px solid var(--rule); }
+  .dash-table td{ padding:9px 10px; border-bottom:1px solid var(--rule); color:var(--cream); vertical-align:middle; }
+  .dash-table tbody tr:last-child td{ border-bottom:none; }
+  .dash-table td .sw{ display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:7px; }
+  .dash-table-sub{ display:block; font-size:11px; color:var(--muted); margin-top:1px; }
+  .dash-table td.money, .dash-table th:nth-child(n+3){ text-align:right; }
 </style>
 </head>
 <body>
@@ -965,6 +998,77 @@ function deleteCategory(id){
 /* =========================================================
    DASHBOARD
 ========================================================= */
+function escapeHtmlLite(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function buildHoldingsRows(){
+  const rows = [];
+  STATE.categories.forEach(cat=>{
+    if (cat.type === 'market'){
+      (STATE.data[cat.id].positions||[]).forEach(p=>{
+        const m = calcPositionMetrics(p);
+        if (m.atual<=0 && m.investido<=0) return;
+        rows.push({
+          nome: p.ticker, sub:'', catLabel: cat.label, catColor: cat.color,
+          qtd: p.qtd, precoMedio: p.precoMedio, precoAtual: p.precoAtual,
+          investido: m.investido, atual: m.atual, resultado: m.resultado, pct: m.pct
+        });
+      });
+    } else {
+      (STATE.data[cat.id].items||[]).forEach(it=>{
+        let investido = 0;
+        (STATE.data[cat.id].moves||[]).filter(mv=>mv.itemId===it.id).forEach(mv=>{
+          investido += (mv.tipo==='entrada' ? mv.valor : -mv.valor);
+        });
+        const atual = it.saldoAtual||0;
+        const resultado = atual-investido;
+        if (atual<=0 && investido<=0) return;
+        rows.push({
+          nome: it.nome, sub: it.subtitulo||'', catLabel: cat.label, catColor: cat.color,
+          qtd:null, precoMedio:null, precoAtual:null,
+          investido, atual, resultado, pct: investido>0 ? (resultado/investido*100) : 0
+        });
+      });
+    }
+  });
+  rows.sort((a,b)=>b.atual-a.atual);
+  return rows;
+}
+
+function buildDashDesktopPanel(g){
+  const rows = buildHoldingsRows();
+  const summaryHtml = `
+    <div class="dash-summary-row">
+      <div class="dash-summary-card"><span class="lbl">Total investido</span><span class="val money">${fmtBRLShort(g.investido)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Total atual</span><span class="val money">${fmtBRLShort(g.atual)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Resultado</span><span class="val money" style="color:${g.resultado>=0?'#8FCB9B':'#E08B7E'}">${g.resultado>=0?'+':''}${fmtBRLShort(g.resultado)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Rentabilidade</span><span class="val money" style="color:${g.resultado>=0?'#8FCB9B':'#E08B7E'}">${fmtPct(g.pct)}</span></div>
+    </div>`;
+
+  const tableHtml = rows.length ? `
+    <div class="section-head" style="margin-bottom:10px"><h2>Todas as posições</h2></div>
+    <table class="dash-table">
+      <thead>
+        <tr><th>Ativo</th><th>Guia</th><th>Qtd</th><th>Preço médio</th><th>Preço atual</th><th>Valor atual</th><th>Resultado</th></tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>`
+          <tr>
+            <td><span class="sw" style="background:${r.catColor}"></span>${escapeHtmlLite(r.nome)}${r.sub?`<span class="dash-table-sub">${escapeHtmlLite(r.sub)}</span>`:''}</td>
+            <td>${escapeHtmlLite(r.catLabel)}</td>
+            <td>${r.qtd!=null ? fmtNum(r.qtd, r.qtd%1?4:0) : '—'}</td>
+            <td>${r.precoMedio!=null ? fmtBRL(r.precoMedio) : '—'}</td>
+            <td>${r.precoAtual!=null ? fmtBRL(r.precoAtual) : '—'}</td>
+            <td class="money">${fmtBRLShort(r.atual)}</td>
+            <td class="money" style="color:${r.resultado>=0?'#8FCB9B':'#E08B7E'}">${r.resultado>=0?'+':''}${fmtBRLShort(r.resultado)} · ${fmtPct(r.pct)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>` : '<p class="desc">Adicione posições pra ver o detalhamento completo.</p>';
+
+  return `<div class="dash-desktop-panel">${summaryHtml}${tableHtml}</div>`;
+}
+
 function openDashboard(){
   const g = grandTotal();
   const legendRows = STATE.categories.map(c=>{
@@ -995,6 +1099,7 @@ function openDashboard(){
     </div>
     <div class="section-head" style="margin-top:4px"><h2>Aportado vs. atual por guia</h2></div>
     ${barsHtml || '<p class="desc">Adicione posições pra ver o comparativo.</p>'}
+    ${buildDashDesktopPanel(g)}
   `, {large:true});
 
   renderDoubleDonut('donutDash', allocationSegments(g), innerRingSegments(g), 16, 4.6, 9, 4.6);
