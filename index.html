@@ -126,12 +126,16 @@
   header.top.collapsed .head-expanded{ max-height:0; opacity:0; margin-top:0; }
 
   .total-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  #totalResultPill{ margin-right:6px; }
+  @media (min-width:720px){
+    #totalResultPill{ margin-right:0; }
+  }
   .wealth-chart-wrap{ display:none; }
   @media (min-width:720px){
     .head-expanded{ max-height:190px; }
-    .total-row{ align-items:stretch; }
+    .total-row{ align-items:center; }
     .wealth-chart-wrap{
-      display:flex; flex-direction:column; justify-content:center; gap:2px; flex:1; min-width:220px; max-width:340px;
+      display:flex; flex-direction:column; justify-content:center; gap:2px; flex:1; min-width:220px; max-width:340px; height:64px;
     }
     .wealth-chart-wrap .lbl{ font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
     .wealth-chart-wrap svg{ width:100%; height:52px; display:block; }
@@ -146,10 +150,11 @@
     font-size:13px; font-weight:600; padding:5px 10px; border-radius:999px;
     display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
     animation: pillPulse 2.6s ease-in-out infinite;
+    align-self:center; flex:0 0 auto; height:26px; box-sizing:border-box;
   }
   .result-pill.pos{ color:#2EE6A6; background: rgba(46,230,166,.12); box-shadow:0 0 0 0 rgba(46,230,166,.3); }
   .result-pill.neg{ color:#FF5C7A; background: rgba(255,92,122,.12); box-shadow:0 0 0 0 rgba(255,92,122,.3); }
-  .result-pill.sm{ font-size:10.5px; padding:3px 8px; animation:none; }
+  .result-pill.sm{ font-size:10.5px; padding:3px 8px; animation:none; height:20px; }
   @keyframes pillPulse{
     0%,100%{ box-shadow:0 0 0 0 currentColor; }
     50%{ box-shadow:0 0 10px 1px currentColor; }
@@ -427,7 +432,7 @@
         </div>
         <span class="result-pill pos" id="totalResultPill"><span class="material-symbols-outlined icn-arrow">arrow_upward</span> 0,00%</span>
         <div class="wealth-chart-wrap">
-          <span class="lbl">Evolução do patrimônio</span>
+          <span class="lbl" id="wealthChartLbl">Evolução do patrimônio</span>
           <svg id="wealthChart" viewBox="0 0 300 52" preserveAspectRatio="none"></svg>
         </div>
       </div>
@@ -675,10 +680,42 @@ function allocationSegments(g){
 /* =========================================================
    RENDER: HEADER
 ========================================================= */
-function renderWealthChart(){
+// Gera um histórico diário fictício (só pra visualizar o gráfico antes de
+// termos 2+ dias reais de uso). Fica em cache na sessão, não é salvo no
+// STATE nem sobrescreve o histórico real.
+let DEMO_HISTORY_CACHE = null;
+function getDemoWealthHistory(currentValue){
+  if (DEMO_HISTORY_CACHE && Math.abs(DEMO_HISTORY_CACHE.base - currentValue) < 0.005){
+    return DEMO_HISTORY_CACHE.data;
+  }
+  const days = 14;
+  let seed = Math.round(currentValue * 100) || 1;
+  const rnd = () => { seed = (seed*9301+49297) % 233280; return seed/233280; };
+  const vals = [currentValue];
+  for (let i=1; i<days; i++){
+    const variation = (rnd()*0.024 - 0.012); // ±1.2% ao "dia", andando pra trás
+    vals.unshift(vals[0] / (1+variation));
+  }
+  const today = new Date();
+  const data = vals.map((v,i)=>{
+    const d = new Date(today); d.setDate(d.getDate() - (days-1-i));
+    return { data: d.toISOString().slice(0,10), valor: v };
+  });
+  DEMO_HISTORY_CACHE = { base: currentValue, data };
+  return data;
+}
+
+function renderWealthChart(currentValue){
   const svg = document.getElementById('wealthChart');
+  const lbl = document.getElementById('wealthChartLbl');
   if (!svg) return;
-  const hist = (STATE.wealthHistory||[]).filter(h=>h.valor>0);
+  let hist = (STATE.wealthHistory||[]).filter(h=>h.valor>0);
+  let isDemo = false;
+  if (hist.length < 2 && currentValue > 0){
+    hist = getDemoWealthHistory(currentValue);
+    isDemo = true;
+  }
+  if (lbl) lbl.innerHTML = 'Evolução do patrimônio' + (isDemo ? ' <span style="opacity:.6; text-transform:none; letter-spacing:0;">(exemplo — some quando houver histórico real)</span>' : '');
   if (hist.length < 2){ svg.innerHTML = ''; return; }
   const W=300, H=52, pad=3;
   const vals = hist.map(h=>h.valor);
@@ -696,7 +733,7 @@ function renderWealthChart(){
   const areaPts = `${pad},${H-pad} ${line} ${W-pad},${H-pad}`;
   svg.innerHTML = `
     <polygon points="${areaPts}" fill="${color}" opacity="0.12"></polygon>
-    <polyline points="${line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"></polyline>
+    <polyline points="${line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" ${isDemo?'stroke-dasharray="4 3"':''}></polyline>
     <circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="2.4" fill="${color}"></circle>
   `;
 }
@@ -740,7 +777,7 @@ function renderHeader(){
   pillMini.innerHTML = arrowIcon(g.resultado>=0, 12) + ' ' + fmtPct(Math.abs(g.pct)).replace('+','');
 
   renderDoubleDonut('donutMini', allocationSegments(g), innerRingSegments(g), 15, 3.4, 8.4, 3.2);
-  renderWealthChart();
+  renderWealthChart(g.atual);
 }
 
 function renderTickerMarquee(){
@@ -850,20 +887,24 @@ function renderMarketPanel(cat){
 
 function fgtsRescisaoHtml(catId){
   const d = STATE.data[catId];
-  const saldoTotal = (d.items||[]).reduce((s,i)=> s + (i.saldoAtual||0), 0);
-  const totalDepositado = (d.moves||[]).filter(m=>m.tipo==='entrada').reduce((s,m)=> s + m.valor, 0);
-  const multa40 = saldoTotal * 0.4;
-  const totalRescisorio = saldoTotal + multa40;
+  const items = d.items || [];
+  const saldoAtualTotal = items.reduce((s,i)=> s + (i.saldoAtual||0), 0);
+  // fallback pra contas antigas que ainda não têm o campo totalDepositado preenchido:
+  // usa a soma das entradas registradas como aproximação.
+  const movesEntradas = (d.moves||[]).filter(m=>m.tipo==='entrada').reduce((s,m)=> s + m.valor, 0);
+  const totalDepositado = items.reduce((s,i)=> s + (i.totalDepositado!=null ? i.totalDepositado : 0), 0) || movesEntradas;
+  const multa40 = totalDepositado * 0.4;
+  const totalRescisorio = saldoAtualTotal + multa40;
   return `
     <div class="card" style="margin-bottom:16px;">
       <div class="label">Simulação para fins rescisórios</div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0 0;">
-        <div class="mini-stat">Saldo depositado<b class="money">${fmtBRL(saldoTotal)}</b></div>
-        <div class="mini-stat">Multa 40% (eventual rescisão)<b class="money">${fmtBRL(multa40)}</b></div>
+        <div class="mini-stat">Total depositado (histórico)<b class="money">${fmtBRL(totalDepositado)}</b></div>
+        <div class="mini-stat">Multa 40% (sobre o histórico)<b class="money">${fmtBRL(multa40)}</b></div>
       </div>
-      <div class="mini-stat" style="margin-top:10px;">Total depositado (histórico)<b class="money">${fmtBRL(totalDepositado)}</b></div>
-      <div class="mini-stat" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--rule);">Total para fins rescisórios (saldo + multa)<b class="money" style="font-size:15px;">${fmtBRL(totalRescisorio)}</b></div>
-      <p class="desc" style="margin:10px 0 0;">Estimativa simples: multa de 40% calculada sobre o saldo depositado atual. O cálculo geral da carteira considera apenas o saldo depositado.</p>
+      <div class="mini-stat" style="margin-top:10px;">Saldo atual na conta<b class="money">${fmtBRL(saldoAtualTotal)}</b></div>
+      <div class="mini-stat" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--rule);">Total para fins rescisórios (saldo atual + multa)<b class="money" style="font-size:15px;">${fmtBRL(totalRescisorio)}</b></div>
+      <p class="desc" style="margin:10px 0 0;">Multa de 40% calculada sobre o total histórico depositado — que pode ser maior que o saldo atual se já houve saque. O cálculo geral da carteira considera apenas o saldo atual na conta.</p>
     </div>`;
 }
 
@@ -920,7 +961,13 @@ function renderSaldoPanel(cat){
             <label for="saldo-${item.id}">Saldo atual</label>
             <input type="number" step="0.01" id="saldo-${item.id}" value="${item.saldoAtual}">
             <button class="btn ghost btn-sm" onclick="updateSaldo('${cat.id}','${item.id}')">Salvar</button>
-          </div>`}
+          </div>
+          ${cat.id==='fgts' ? `
+          <div class="price-edit">
+            <label for="totaldep-${item.id}">Total depositado (histórico)</label>
+            <input type="number" step="0.01" id="totaldep-${item.id}" value="${item.totalDepositado||0}">
+            <button class="btn ghost btn-sm" onclick="updateFgtsTotalDepositado('${cat.id}','${item.id}')">Salvar</button>
+          </div>` : ''}`}
           <div class="row-actions">
             <button class="btn ghost btn-sm" onclick="openTxModal('${cat.id}','${item.id}','entrada')">+ ${cat.entradaLabel}</button>
             ${cat.saidaLabel ? `<button class="btn ghost btn-sm" onclick="openTxModal('${cat.id}','${item.id}','saida')">+ ${cat.saidaLabel}</button>` : ''}
@@ -1013,6 +1060,13 @@ function updateSaldo(catId, itemId){
   STATE.data[catId].items.find(i=>i.id===itemId).saldoAtual = val;
   persist();
 }
+function updateFgtsTotalDepositado(catId, itemId){
+  const input = document.getElementById('totaldep-'+itemId);
+  const val = parseFloat(input.value);
+  if (isNaN(val) || val < 0) return;
+  STATE.data[catId].items.find(i=>i.id===itemId).totalDepositado = val;
+  persist();
+}
 
 function deletePosition(catId, posId){
   if (!confirm('Excluir esta posição e todo o histórico associado?')) return;
@@ -1101,11 +1155,18 @@ function openAddModal(catId){
           <div class="field-group"><label class="field">Parte Funcionário</label><input type="number" step="0.01" id="f-saldo-funcionario" placeholder="0,00"></div>
         </div>
       </div>` : `<div class="field-group"><label class="field">Saldo atual</label><input type="number" step="0.01" id="f-saldo" placeholder="0,00"></div>`;
+    const fgtsExtra = cat.id === 'fgts' ? `
+      <div class="field-group">
+        <label class="field">Total depositado (histórico)</label>
+        <input type="number" step="0.01" id="f-total-depositado" placeholder="0,00">
+        <p class="desc" style="margin:6px 0 0;">Soma de tudo que já foi depositado nessa conta, desde o início do contrato — usado só pra calcular a multa de 40% de uma eventual rescisão. Pode ser diferente do saldo atual se já houve saque.</p>
+      </div>` : '';
     openModal(`
       <div class="modal-head"><h3>Novo ${cat.unit}</h3><button class="close" onclick="closeModalGuarded()"><span class="material-symbols-outlined icn-sm">close</span></button></div>
       <div class="field-group"><label class="field">Nome</label><input type="text" id="f-nome" placeholder="Ex: ${cat.id==='fgts'?'Klabin S.A.':'PGBL Itaú'}"></div>
       <div class="field-group"><label class="field">Detalhe (opcional)</label><input type="text" id="f-sub" placeholder="Ex: instituição, observação"></div>
       ${previdenciaSplit}
+      ${fgtsExtra}
       <button class="btn" style="width:100%" onclick="submitAddSaldoItem('${catId}')">Adicionar</button>
     `);
     return;
@@ -1154,7 +1215,12 @@ function submitAddSaldoItem(catId){
     refreshPrevidenciaVesting();
   } else {
     const saldo = parseFloat(document.getElementById('f-saldo').value) || 0;
-    STATE.data[catId].items.push({id:uid(), nome, subtitulo:sub, saldoAtual:saldo});
+    const item = {id:uid(), nome, subtitulo:sub, saldoAtual:saldo};
+    if (catId === 'fgts'){
+      const tdEl = document.getElementById('f-total-depositado');
+      item.totalDepositado = tdEl ? (parseFloat(tdEl.value) || 0) : 0;
+    }
+    STATE.data[catId].items.push(item);
   }
   closeModal(); persist();
 }
@@ -1207,6 +1273,9 @@ function submitTx(catId, refId, tipo){
       item.saldoAtual = novoSaldo;
     } else {
       item.saldoAtual = tipo==='entrada' ? (item.saldoAtual||0)+valor : Math.max(0,(item.saldoAtual||0)-valor);
+    }
+    if (catId === 'fgts' && tipo === 'entrada'){
+      item.totalDepositado = (item.totalDepositado||0) + valor;
     }
     closeModal(); persist(); return;
   }
