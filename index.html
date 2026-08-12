@@ -126,13 +126,16 @@
   header.top.collapsed .head-expanded{ max-height:0; opacity:0; margin-top:0; }
 
   .total-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
-  #totalResultPill{ margin-right:6px; order:3; }
+  /* No celular a bolinha de rentabilidade vira uma linha própria, cheia e
+     centralizada, embaixo do valor total (que já fica abaixo dos 4 botões
+     do cabeçalho) — antes ela ficava espremida ao lado, meio à esquerda. */
+  #totalResultPill{ order:4; width:100%; justify-content:center; margin-top:8px; }
   .wealth-chart-wrap{ display:none; }
   @media (min-width:720px){
     .head-expanded{ max-height:250px; overflow:visible; }
     .total-row{ align-items:center; flex-wrap:nowrap; }
     #totalResultPill{
-      margin-right:0; order:3; flex:0 0 auto;
+      margin-right:0; margin-top:0; order:3; flex:0 0 auto;
       width:92px; height:92px; border-radius:50%;
       flex-direction:column; justify-content:center; gap:2px;
       padding:0; font-size:15px;
@@ -154,6 +157,11 @@
   .total-sub{ display:flex; gap:18px; margin-top:4px; flex-wrap:wrap;}
   .total-sub .stat{ font-size:11.5px; color: var(--muted); }
   .total-sub .stat b{ display:block; font-size:13.5px; color: var(--cream); margin-top:1px; font-weight:600; }
+  /* Botãozinho logo abaixo do valor total — abre o diálogo com a composição
+     (quanto cada guia representa do total). */
+  .breakdown-trigger{ display:inline-flex; align-items:center; gap:4px; background:none; border:none; color:var(--muted); font-size:11px; padding:3px 0 0; margin-top:2px; cursor:pointer; }
+  .breakdown-trigger:hover{ color:var(--cream); }
+  .breakdown-trigger .material-symbols-outlined{ font-size:14px; }
 
   .result-pill{
     font-size:13px; font-weight:600; padding:5px 10px; border-radius:999px;
@@ -438,6 +446,9 @@
             <div class="stat">Aportado<b class="mono money" id="totalInvested">R$ 0</b></div>
             <div class="stat">Resultado<b class="mono money" id="totalResultAbs">R$ 0</b></div>
           </div>
+          <button class="breakdown-trigger" onclick="openTotalBreakdown()" title="Ver o que compõe o total">
+            <span class="material-symbols-outlined">pie_chart</span> Composição do total
+          </button>
         </div>
         <span class="result-pill pos" id="totalResultPill"><span class="material-symbols-outlined icn-arrow">arrow_upward</span> 0,00%</span>
         <div class="wealth-chart-wrap" id="wealthChartWrap" ondblclick="openWealthChartFull()" title="Clique duas vezes pra ver em tela cheia">
@@ -485,9 +496,9 @@ function defaultState(){
     categories: [
       { id:'acoes',       label:'Ações',       color:'#3B9EFF', type:'market', unit:'ação',   builtIn:true },
       { id:'fiis',        label:'FIIs',        color:'#12D18E', type:'market', unit:'FII',    builtIn:true },
-      { id:'previdencia', label:'Previdência', color:'#E0B84C', type:'saldo',  unit:'plano',  builtIn:true, entradaLabel:'Aporte', saidaLabel:null },
+      { id:'previdencia', label:'Previdência', color:'#E0B84C', type:'saldo',  unit:'plano',  builtIn:true, entradaLabel:'Aporte', saidaLabel:null, rendMode:'manual' },
       { id:'crypto',      label:'Crypto',      color:'#B14EFF', type:'market', unit:'ativo',  builtIn:true },
-      { id:'fgts',        label:'FGTS',        color:'#1EC9C9', type:'saldo',  unit:'conta',  builtIn:true, entradaLabel:'Depósito', saidaLabel:'Saque' },
+      { id:'fgts',        label:'FGTS',        color:'#1EC9C9', type:'saldo',  unit:'conta',  builtIn:true, entradaLabel:'Depósito', saidaLabel:'Saque', rendMode:'fixed', taxaAnual:0.03 },
     ],
     data: {
       acoes:       { positions: [], history: [] },
@@ -519,6 +530,42 @@ function migrateOldState(old){
   };
   return fresh;
 }
+// Preenche, em guias tipo "saldo" carregadas de um backup/localStorage antigo,
+// os campos novos de rendimento (rendMode/taxaAnual) que ainda não existiam
+// quando esses dados foram salvos. FGTS sempre vira rendimento fixo de 3% ao
+// ano (regra legal); Previdência e guias "saldo" personalizadas antigas viram
+// rendimento manual (o comportamento que já tinham antes).
+function ensureCategoryRendDefaults(s){
+  s.categories.forEach(cat=>{
+    if (cat.type !== 'saldo') return;
+    if (cat.id === 'fgts'){
+      if (cat.rendMode == null) cat.rendMode = 'fixed';
+      if (cat.taxaAnual == null) cat.taxaAnual = 0.03;
+    } else if (cat.rendMode == null){
+      cat.rendMode = 'manual';
+    }
+  });
+}
+// Migração pontual: contas de FGTS que já tinham um "saldo atual" digitado
+// mas nenhum lançamento (aporte) associado — ou seja, todo aquele valor
+// estava sendo contado como "rendimento" em vez de "depositado". Aqui a
+// gente cria um aporte inicial com esse valor, datado de hoje, pra que o
+// saldo passe a ser tratado como principal e o rendimento volte a ser só a
+// diferença gerada pela taxa fixa a partir de agora.
+function migrateFixedRendInitialMoves(s){
+  s.categories.filter(c=>c.type==='saldo' && c.rendMode==='fixed').forEach(cat=>{
+    const d = s.data[cat.id];
+    if (!d) return;
+    d.moves = d.moves || [];
+    (d.items||[]).forEach(item=>{
+      if (item.modoEmpresaFuncionario) return;
+      const temMove = d.moves.some(m=>m.itemId===item.id);
+      if (!temMove && (item.saldoAtual||0) > 0){
+        d.moves.push({ id: uid(), itemId: item.id, tipo:'entrada', valor: item.saldoAtual, data: todayISO() });
+      }
+    });
+  });
+}
 function normalizeState(s){
   if (!s) return defaultState();
   if (isOldFormat(s)) s = migrateOldState(s);
@@ -526,6 +573,8 @@ function normalizeState(s){
   if (!s.settings) s.settings = { brapiTokens: [] };
   if (!s.settings.brapiTokens) s.settings.brapiTokens = [];
   if (!s.wealthHistory) s.wealthHistory = [];
+  ensureCategoryRendDefaults(s);
+  migrateFixedRendInitialMoves(s);
   return s;
 }
 function recordWealthSnapshot(g){
@@ -631,6 +680,38 @@ function refreshPrevidenciaVesting(){
       const pct = vestingPercentPrevidencia();
       item.saldoAtual = (item.funcionarioSaldo||0) + (item.empresaSaldo||0)*pct;
     }
+  });
+}
+
+/* =========================================================
+   RENDIMENTO FIXO (guias "saldo" com taxa fixa ao ano, ex: FGTS = 3% a.a.)
+   Cada aporte/saque vira um lançamento (move) datado. O "saldo atual" do
+   item NÃO é mais digitado à mão: ele é sempre recalculado aplicando juros
+   compostos de cat.taxaAnual sobre cada lançamento, desde a data dele até
+   hoje. Isso é o que resolve o valor "aportado" virando "rendimento" sem
+   querer — o principal só cresce pela taxa combinada, não pelo valor cheio
+   do depósito.
+========================================================= */
+function computeFixedRendSaldo(cat, item, moves){
+  const taxa = cat.taxaAnual || 0;
+  const hojeMs = Date.now();
+  let saldo = 0;
+  moves.filter(m=>m.itemId===item.id).forEach(m=>{
+    const dataMs = new Date(m.data+'T00:00:00').getTime();
+    const anos = Math.max(0, (hojeMs - dataMs) / (365.25*24*3600*1000));
+    const valorCorrigido = m.valor * Math.pow(1+taxa, anos);
+    saldo += (m.tipo==='entrada' ? valorCorrigido : -valorCorrigido);
+  });
+  return Math.max(0, saldo);
+}
+function refreshFixedRendSaldos(){
+  STATE.categories.filter(c=>c.type==='saldo' && c.rendMode==='fixed').forEach(cat=>{
+    const d = STATE.data[cat.id];
+    if (!d) return;
+    (d.items||[]).forEach(item=>{
+      if (item.modoEmpresaFuncionario) return; // modo Empresa/Funcionário tem regra própria (vesting)
+      item.saldoAtual = computeFixedRendSaldo(cat, item, d.moves||[]);
+    });
   });
 }
 
@@ -895,13 +976,62 @@ function emptyStateHtml(title, desc, cta, catId){
   </div>`;
 }
 
+/* =========================================================
+   BLOCO ESPECIAL DA GUIA "RENDA FIXA"
+   Identifica a guia pelo nome (sem acento/maiúsculas) em vez de um id fixo,
+   já que ela é criada pelo usuário como uma guia personalizada. Mostra:
+   1) o quanto a Renda Fixa representa, em %, sobre a soma de Ações + FIIs +
+      Previdência + Crypto;
+   2) uma meta digitável de reserva de emergência — existe só aqui dentro.
+========================================================= */
+function normalizeLabel(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+function isRendaFixaCat(cat){
+  return normalizeLabel(cat.label) === 'renda fixa';
+}
+function rendaFixaExtraHtml(cat){
+  const t = catTotals(cat.id);
+  const outrasIds = ['acoes','fiis','previdencia','crypto'];
+  const totalOutras = outrasIds.reduce((s,id)=> s + (STATE.categories.some(c=>c.id===id) ? catTotals(id).atual : 0), 0);
+  const pctRelativo = totalOutras>0 ? (t.atual/totalOutras*100) : 0;
+  const meta = cat.metaReservaEmergencia || 0;
+  const pctMeta = meta>0 ? Math.min(100, t.atual/meta*100) : 0;
+  return `
+    <div class="card" style="margin-bottom:16px;">
+      <div class="label">% sobre Ações + FIIs + Previdência + Crypto</div>
+      <div class="value mono money">${fmtNum(pctRelativo,2)}%</div>
+      <div class="mini-stat" style="margin-top:12px;">Meta de reserva de emergência</div>
+      <div class="price-edit" style="margin-top:6px;">
+        <input type="number" step="0.01" id="metaReserva-${cat.id}" value="${meta}">
+        <button class="btn ghost btn-sm" onclick="updateMetaReserva('${cat.id}')">Salvar</button>
+      </div>
+      ${meta>0 ? `<div class="mini-stat" style="margin-top:10px;">Progresso da reserva<b>${fmtNum(pctMeta,1)}% · ${fmtBRLShort(t.atual)} de ${fmtBRLShort(meta)}</b></div>` : ''}
+    </div>`;
+}
+function updateMetaReserva(catId){
+  const input = document.getElementById('metaReserva-'+catId);
+  const val = parseFloat(input.value);
+  if (isNaN(val) || val < 0) return;
+  const cat = STATE.categories.find(c=>c.id===catId);
+  if (cat) cat.metaReservaEmergencia = val;
+  persist();
+}
+
 function renderMarketPanel(cat){
   const el = document.getElementById('panel-'+cat.id);
   if (!el) return;
   const t = catTotals(cat.id);
   const positions = STATE.data[cat.id].positions;
 
-  let html = summaryCardsHtml(t) + sectionHeadHtml('Posições', positions.length, positions.length===1?'ativo':'ativos');
+  let html = summaryCardsHtml(t);
+  // Bloco especial da guia "Renda Fixa", só quando ela é criada no modelo
+  // ticket + preço (mercado) em vez de saldo — ver rendaFixaExtraHtml().
+  if (isRendaFixaCat(cat)) html += rendaFixaExtraHtml(cat);
+  html += sectionHeadHtml('Posições', positions.length, positions.length===1?'ativo':'ativos');
+  // Ações/FIIs: mostra teto e % de aporte alvo digitáveis por posição, mais
+  // o % que cada posição representa do total já investido na guia.
+  const mostraAlvoPosicao = (cat.id === 'acoes' || cat.id === 'fiis');
 
   if (positions.length === 0){
     html += emptyStateHtml(`Nenhuma posição em ${cat.label} ainda`, `Registre sua primeira compra de ${cat.unit} pra começar a acompanhar o resultado.`, `Adicionar ${cat.unit}`, cat.id);
@@ -913,6 +1043,7 @@ function renderMarketPanel(cat){
     const m = calcPositionMetrics(pos);
     const isOpen = OPEN_ROWS.has(pos.id);
     const hist = STATE.data[cat.id].history.filter(h=>h.positionId===pos.id).sort((a,b)=>b.data.localeCompare(a.data));
+    const pctDoTotalCategoria = t.atual>0 ? (m.atual/t.atual*100) : 0;
     html += `
       <div class="pos-row">
         <div class="pos-head" onclick="toggleRow('${pos.id}')">
@@ -930,6 +1061,14 @@ function renderMarketPanel(cat){
             <div class="mini-stat">Investido<b class="money">${fmtBRL(m.investido)}</b></div>
             <div class="mini-stat">Resultado<b class="money" style="color:${m.resultado>=0?'#2EE6A6':'#FF5C7A'}">${(m.resultado>=0?'+':'')+fmtBRL(m.resultado)}</b></div>
           </div>
+          ${mostraAlvoPosicao ? `
+          <div class="field-row" style="margin:10px 0;">
+            <div class="field-group"><label class="field">Valor teto</label><input type="number" step="0.01" id="teto-${pos.id}" value="${pos.valorTeto||0}"></div>
+            <div class="field-group"><label class="field">% aporte alvo</label><input type="number" step="0.01" id="pctaporte-${pos.id}" value="${pos.pctAporteAlvo||0}"></div>
+          </div>
+          <button class="btn ghost btn-sm" style="width:100%; margin-bottom:8px;" onclick="updatePosAlvo('${cat.id}','${pos.id}')">Salvar teto / %</button>
+          <div class="mini-stat" style="margin-bottom:8px;">% do total em ${cat.label}<b>${fmtNum(pctDoTotalCategoria,2)}%</b></div>
+          ` : ''}
           <div class="price-edit">
             <label for="price-${pos.id}">Preço atual</label>
             <input type="number" step="0.01" id="price-${pos.id}" value="${pos.precoAtual}">
@@ -987,6 +1126,10 @@ function renderSaldoPanel(cat){
 
   let html = summaryCardsHtml(t, {investLabel, currentLabel:'Saldo atual', resultLabel:'Rendimento'});
   if (cat.id === 'fgts') html += fgtsRescisaoHtml(cat.id);
+  // Bloco especial só da guia "Renda Fixa" (criada pelo usuário): % em
+  // relação às outras guias de risco + meta digitável de reserva de
+  // emergência. Não aparece em nenhuma outra guia.
+  if (isRendaFixaCat(cat)) html += rendaFixaExtraHtml(cat);
   html += sectionHeadHtml(cat.label==='FGTS'?'Contas vinculadas':'Itens', items.length, items.length===1?cat.unit:cat.unit+'s');
 
   if (items.length === 0){
@@ -1026,18 +1169,26 @@ function renderSaldoPanel(cat){
           </div>
           <button class="btn ghost btn-sm" style="width:100%; margin-bottom:6px;" onclick="updateEmpresaFuncionario('${cat.id}','${item.id}')">Salvar</button>
           <div class="mini-stat">Saldo considerado hoje (parte empresa integralizada)<b class="money">${fmtBRL(item.saldoAtual)}</b></div>
-          ` : `
-          <div class="price-edit">
-            <label for="saldo-${item.id}">Saldo atual</label>
-            <input type="number" step="0.01" id="saldo-${item.id}" value="${item.saldoAtual}">
-            <button class="btn ghost btn-sm" onclick="updateSaldo('${cat.id}','${item.id}')">Salvar</button>
-          </div>
+          ` : cat.rendMode === 'fixed' ? `
+          <!-- Guia de rendimento fixo (ex: FGTS): o saldo NÃO é editável à
+               mão — ele é sempre o resultado de aportado + juros da taxa
+               anual da guia, calculado em refreshFixedRendSaldos(). -->
+          <div class="mini-stat" style="margin-bottom:8px;">Saldo atual (com rendimento de ${fmtNum((cat.taxaAnual||0)*100,2)}% a.a.)<b class="money" style="font-size:15px;">${fmtBRL(item.saldoAtual)}</b></div>
+          <p class="desc" style="margin:0 0 10px;">Calculado automaticamente a partir dos ${cat.entradaLabel.toLowerCase()}s/${(cat.saidaLabel||'saques').toLowerCase()}s registrados — não precisa atualizar na mão.</p>
           ${cat.id==='fgts' ? `
           <div class="price-edit">
             <label for="totaldep-${item.id}">Total depositado (histórico)</label>
             <input type="number" step="0.01" id="totaldep-${item.id}" value="${item.totalDepositado||0}">
             <button class="btn ghost btn-sm" onclick="updateFgtsTotalDepositado('${cat.id}','${item.id}')">Salvar</button>
-          </div>` : ''}`}
+          </div>` : ''}
+          ` : `
+          <!-- Guia de rendimento manual (ex: Previdência): o saldo atual
+               continua editável na mão, como um extrato que você consulta. -->
+          <div class="price-edit">
+            <label for="saldo-${item.id}">Saldo atual</label>
+            <input type="number" step="0.01" id="saldo-${item.id}" value="${item.saldoAtual}">
+            <button class="btn ghost btn-sm" onclick="updateSaldo('${cat.id}','${item.id}')">Salvar</button>
+          </div>`}
           <div class="row-actions">
             <button class="btn ghost btn-sm" onclick="openTxModal('${cat.id}','${item.id}','entrada')">+ ${cat.entradaLabel}</button>
             ${cat.saidaLabel ? `<button class="btn ghost btn-sm" onclick="openTxModal('${cat.id}','${item.id}','saida')">+ ${cat.saidaLabel}</button>` : ''}
@@ -1088,6 +1239,7 @@ function renderTabs(){
 function renderAll(){
   ensurePanelElements();
   refreshPrevidenciaVesting();
+  refreshFixedRendSaldos();
   renderHeader();
   renderTickerMarquee();
   renderTabs();
@@ -1111,6 +1263,20 @@ function updatePrice(catId, posId){
   const val = parseFloat(input.value);
   if (isNaN(val) || val < 0) return;
   STATE.data[catId].positions.find(p=>p.id===posId).precoAtual = val;
+  persist();
+}
+// Salva o "valor teto" e o "% de aporte alvo" de uma posição de Ações/FIIs —
+// campos só de planejamento (quanto você quer ter/aportar naquele ativo),
+// não entram em nenhuma conta de investido/atual/resultado.
+function updatePosAlvo(catId, posId){
+  const tetoInput = document.getElementById('teto-'+posId);
+  const pctInput = document.getElementById('pctaporte-'+posId);
+  const teto = parseFloat(tetoInput.value);
+  const pct = parseFloat(pctInput.value);
+  const pos = STATE.data[catId].positions.find(p=>p.id===posId);
+  if (!pos) return;
+  pos.valorTeto = isNaN(teto) ? 0 : Math.max(0, teto);
+  pos.pctAporteAlvo = isNaN(pct) ? 0 : Math.max(0, pct);
   persist();
 }
 function updateEmpresaFuncionario(catId, itemId){
@@ -1236,6 +1402,11 @@ function openAddModal(catId){
       <div class="field-group"><label class="field">Nome</label><input type="text" id="f-nome" placeholder="Ex: ${cat.id==='fgts'?'Klabin S.A.':'PGBL Itaú'}"></div>
       <div class="field-group"><label class="field">Detalhe (opcional)</label><input type="text" id="f-sub" placeholder="Ex: instituição, observação"></div>
       ${previdenciaSplit}
+      <div class="field-group">
+        <label class="field">Data de referência do saldo</label>
+        <input type="date" id="f-data-inicial" value="${todayISO()}">
+        <p class="desc" style="margin:6px 0 0;">Esse saldo entra como ${cat.entradaLabel.toLowerCase()} nessa data — é a partir dela que o rendimento passa a ser calculado.</p>
+      </div>
       ${fgtsExtra}
       <button class="btn" style="width:100%" onclick="submitAddSaldoItem('${catId}')">Adicionar</button>
     `);
@@ -1276,21 +1447,33 @@ function submitAddSaldoItem(catId){
   const nome = document.getElementById('f-nome').value.trim();
   const sub = document.getElementById('f-sub').value.trim();
   if (!nome) return alert('Dê um nome.');
+  const dataInicialEl = document.getElementById('f-data-inicial');
+  const dataInicial = (dataInicialEl && dataInicialEl.value) || todayISO();
   const splitEl = document.getElementById('f-split-ef');
   if (splitEl && splitEl.checked){
     const empresaSaldo = parseFloat(document.getElementById('f-saldo-empresa').value) || 0;
     const funcionarioSaldo = parseFloat(document.getElementById('f-saldo-funcionario').value) || 0;
     const item = {id:uid(), nome, subtitulo:sub, modoEmpresaFuncionario:true, empresaSaldo, funcionarioSaldo, saldoAtual:0};
     STATE.data[catId].items.push(item);
+    // Mesmo no modo Empresa/Funcionário, o saldo inicial informado entra
+    // como um aporte (não como rendimento) — pra manter o "aportado" da
+    // guia correto mesmo aqui.
+    const totalInicial = empresaSaldo + funcionarioSaldo;
+    if (totalInicial > 0) STATE.data[catId].moves.push({id:uid(), itemId:item.id, tipo:'entrada', valor:totalInicial, data:dataInicial});
     refreshPrevidenciaVesting();
   } else {
     const saldo = parseFloat(document.getElementById('f-saldo').value) || 0;
     const item = {id:uid(), nome, subtitulo:sub, saldoAtual:saldo};
     if (catId === 'fgts'){
       const tdEl = document.getElementById('f-total-depositado');
-      item.totalDepositado = tdEl ? (parseFloat(tdEl.value) || 0) : 0;
+      item.totalDepositado = (tdEl && tdEl.value) ? (parseFloat(tdEl.value) || 0) : saldo;
     }
     STATE.data[catId].items.push(item);
+    // O saldo digitado na criação passa a contar como um aporte/depósito —
+    // é isso que corrige o "total virando rendimento" (ver
+    // refreshFixedRendSaldos, pra guias de taxa fixa, e o cálculo de
+    // Rendimento = saldo atual − total ${cat.entradaLabel.toLowerCase()}s, pra guias manuais).
+    if (saldo > 0) STATE.data[catId].moves.push({id:uid(), itemId:item.id, tipo:'entrada', valor:saldo, data:dataInicial});
   }
   closeModal(); persist();
 }
@@ -1301,7 +1484,10 @@ function openTxModal(catId, refId, tipo){
     const label = tipo==='entrada' ? cat.entradaLabel : cat.saidaLabel;
     const item = STATE.data[catId].items.find(i=>i.id===refId);
     const isEmpresaFuncionario = item && item.modoEmpresaFuncionario;
-    const saldoFieldHtml = (tipo==='entrada' && !isEmpresaFuncionario) ? `
+    // Em guias de taxa fixa (rendMode 'fixed', ex: FGTS) o saldo é sempre
+    // recalculado a partir dos lançamentos (ver refreshFixedRendSaldos), então
+    // não faz sentido oferecer edição manual do saldo aqui.
+    const saldoFieldHtml = (tipo==='entrada' && !isEmpresaFuncionario && cat.rendMode !== 'fixed') ? `
       <div class="field-group">
         <label class="field">Novo saldo atual (opcional)</label>
         <input type="number" step="0.01" id="f-novo-saldo" placeholder="Deixe em branco pra somar automaticamente">
@@ -1337,12 +1523,17 @@ function submitTx(catId, refId, tipo){
     if (!valor) return alert('Informe o valor.');
     STATE.data[catId].moves.push({id:uid(), itemId:refId, tipo, valor, data});
     const item = STATE.data[catId].items.find(i=>i.id===refId);
-    const novoSaldoEl = document.getElementById('f-novo-saldo');
-    const novoSaldo = novoSaldoEl ? parseFloat(novoSaldoEl.value) : NaN;
-    if (!isNaN(novoSaldo) && novoSaldo >= 0){
-      item.saldoAtual = novoSaldo;
+    if (cat.rendMode === 'fixed'){
+      // Não mexe em item.saldoAtual aqui: refreshFixedRendSaldos() recalcula
+      // tudo a partir dos lançamentos assim que a tela é renderizada de novo.
     } else {
-      item.saldoAtual = tipo==='entrada' ? (item.saldoAtual||0)+valor : Math.max(0,(item.saldoAtual||0)-valor);
+      const novoSaldoEl = document.getElementById('f-novo-saldo');
+      const novoSaldo = novoSaldoEl ? parseFloat(novoSaldoEl.value) : NaN;
+      if (!isNaN(novoSaldo) && novoSaldo >= 0){
+        item.saldoAtual = novoSaldo;
+      } else {
+        item.saldoAtual = tipo==='entrada' ? (item.saldoAtual||0)+valor : Math.max(0,(item.saldoAtual||0)-valor);
+      }
     }
     if (catId === 'fgts' && tipo === 'entrada'){
       item.totalDepositado = (item.totalDepositado||0) + valor;
@@ -1370,13 +1561,45 @@ const CAT_PALETTE = [
   '#5B8CFF','#4AD991','#F2555C','#00B4D8','#C97BFF','#FF9F45','#6EE7B7','#8FA3B8'
 ];
 let SELECTED_CAT_COLOR = CAT_PALETTE[0];
+// Tipo da guia que está sendo criada agora no modal (não fica salvo — só
+// controla quais campos aparecem enquanto o usuário escolhe):
+// 'market' = modelo ticket + preço (igual Ações/FIIs/Crypto)
+// 'saldo'  = modelo aportes + rendimento (igual FGTS/Previdência)
+let SELECTED_CAT_TYPE = 'market';
+let SELECTED_CAT_REND = 'manual';
 
 function openAddCategoryModal(){
   SELECTED_CAT_COLOR = CAT_PALETTE[Math.floor(Math.random()*CAT_PALETTE.length)];
+  SELECTED_CAT_TYPE = 'market';
+  SELECTED_CAT_REND = 'manual';
   openModal(`
     <div class="modal-head"><h3>Nova guia</h3><button class="close" onclick="closeModalGuarded()"><span class="material-symbols-outlined icn-sm">close</span></button></div>
     <div class="field-group"><label class="field">Nome da guia</label><input type="text" id="f-cat-nome" placeholder="Ex: Renda Fixa, Ouro, Consórcio"></div>
-    <p class="desc" style="margin:-6px 0 12px;">Toda guia nova funciona no modelo ticket + preço, igual Ações e FIIs.</p>
+
+    <div class="field-group">
+      <label class="field">Tipo de guia</label>
+      <div class="seg" id="catTypeSeg">
+        <button type="button" class="active" data-type="market" onclick="selectCatType('market')">Mercado (cotação)</button>
+        <button type="button" data-type="saldo" onclick="selectCatType('saldo')">Saldo (aportes)</button>
+      </div>
+      <p class="desc" id="catTypeDesc" style="margin-top:6px;">Modelo ticket + preço, igual Ações e FIIs: você registra quantidade e preço, e o rendimento vem da variação de cotação buscada na API.</p>
+    </div>
+
+    <div id="catSaldoOptions" style="display:none;">
+      <div class="field-group">
+        <label class="field">Rendimento</label>
+        <div class="seg" id="catRendSeg">
+          <button type="button" class="active" data-rend="manual" onclick="selectCatRendMode('manual')">Manual (eu atualizo)</button>
+          <button type="button" data-rend="fixed" onclick="selectCatRendMode('fixed')">Taxa fixa ao ano</button>
+        </div>
+      </div>
+      <div class="field-group" id="catTaxaGroup" style="display:none;">
+        <label class="field">Taxa anual (%)</label>
+        <input type="number" step="0.01" id="f-cat-taxa" placeholder="Ex: 3">
+        <p class="desc" style="margin:6px 0 0;">Cada valor lançado entra como aportado/depositado, e o rendimento é calculado sozinho com essa taxa ao ano — igual o FGTS (3% a.a. por lei).</p>
+      </div>
+    </div>
+
     <div class="field-group">
       <label class="field">Cor</label>
       <div class="swatch-row" id="swatchRow"></div>
@@ -1390,6 +1613,22 @@ function openAddCategoryModal(){
     <button class="btn" style="width:100%" onclick="submitAddCategory()">Criar guia</button>
   `);
   renderSwatches();
+}
+// Alterna, no modal de nova guia, entre o modelo "mercado" (ticket + preço)
+// e o modelo "saldo" (aportes + rendimento), mostrando/escondendo os campos
+// de cada um.
+function selectCatType(type){
+  SELECTED_CAT_TYPE = type;
+  document.querySelectorAll('#catTypeSeg button').forEach(b=>b.classList.toggle('active', b.dataset.type===type));
+  document.getElementById('catSaldoOptions').style.display = type==='saldo' ? 'block' : 'none';
+  document.getElementById('catTypeDesc').textContent = type==='saldo'
+    ? 'Modelo aportes + rendimento, igual FGTS e Previdência: você registra depósitos/saques, e o valor lançado sempre entra como aportado.'
+    : 'Modelo ticket + preço, igual Ações e FIIs: você registra quantidade e preço, e o rendimento vem da variação de cotação buscada na API.';
+}
+function selectCatRendMode(mode){
+  SELECTED_CAT_REND = mode;
+  document.querySelectorAll('#catRendSeg button').forEach(b=>b.classList.toggle('active', b.dataset.rend===mode));
+  document.getElementById('catTaxaGroup').style.display = mode==='fixed' ? 'block' : 'none';
 }
 function renderSwatches(){
   const row = document.getElementById('swatchRow');
@@ -1405,9 +1644,22 @@ function submitAddCategory(){
   const nome = document.getElementById('f-cat-nome').value.trim();
   if (!nome) return alert('Dê um nome pra guia.');
   const id = 'cat_'+uid();
-  const cat = { id, label: nome, color: SELECTED_CAT_COLOR, type: 'market', unit: nome.toLowerCase(), builtIn: false };
-  STATE.data[id] = { positions: [], history: [] };
-  STATE.categories.push(cat);
+  if (SELECTED_CAT_TYPE === 'saldo'){
+    const taxaEl = document.getElementById('f-cat-taxa');
+    const taxaPct = taxaEl ? parseFloat(taxaEl.value) : NaN;
+    const cat = {
+      id, label: nome, color: SELECTED_CAT_COLOR, type: 'saldo', unit: nome.toLowerCase(), builtIn: false,
+      entradaLabel: 'Aporte', saidaLabel: 'Saque',
+      rendMode: SELECTED_CAT_REND,
+      taxaAnual: SELECTED_CAT_REND==='fixed' ? ((!isNaN(taxaPct) ? taxaPct : 0)/100) : undefined,
+    };
+    STATE.data[id] = { items: [], moves: [] };
+    STATE.categories.push(cat);
+  } else {
+    const cat = { id, label: nome, color: SELECTED_CAT_COLOR, type: 'market', unit: nome.toLowerCase(), builtIn: false };
+    STATE.data[id] = { positions: [], history: [] };
+    STATE.categories.push(cat);
+  }
   ACTIVE_TAB = id;
   closeModal();
   persist();
@@ -1531,6 +1783,28 @@ function openDashboard(){
   `, {large:true});
 
   renderDoubleDonut('donutDash', allocationSegments(g), innerRingSegments(g), 16, 4.6, 9, 4.6);
+}
+
+/* =========================================================
+   COMPOSIÇÃO DO TOTAL
+   Diálogo simples, aberto pelo ícone logo abaixo do valor total da
+   carteira, mostrando de quais guias vem esse total e o valor/percentual
+   de cada uma — sem os gráficos e tabelas do Dashboard completo.
+========================================================= */
+function openTotalBreakdown(){
+  const g = grandTotal();
+  const rows = STATE.categories.map(c=>{
+    const t = catTotals(c.id);
+    if (t.atual<=0 && t.investido<=0) return '';
+    const pct = g.atual>0 ? (t.atual/g.atual*100) : 0;
+    return `<div class="dash-legend-row"><span class="left"><span class="sw" style="background:${c.color}"></span>${c.label}</span><span class="right money">${fmtBRL(t.atual)} · ${fmtNum(pct,1)}%</span></div>`;
+  }).join('');
+  openModal(`
+    <div class="modal-head"><h3>Composição do total</h3><button class="close" onclick="closeModalGuarded()"><span class="material-symbols-outlined icn-sm">close</span></button></div>
+    <p class="desc" style="margin:-6px 0 14px;">Valor atual de cada guia e o quanto ela representa do total da carteira, hoje.</p>
+    <div class="dash-legend">${rows || '<div class="dash-legend-row">Sem posições ainda</div>'}</div>
+    <div class="mini-stat" style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--rule);">Total da carteira<b class="money" style="font-size:16px;">${fmtBRL(g.atual)}</b></div>
+  `);
 }
 
 /* =========================================================
