@@ -126,19 +126,28 @@
   header.top.collapsed .head-expanded{ max-height:0; opacity:0; margin-top:0; }
 
   .total-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
-  #totalResultPill{ margin-right:6px; }
-  @media (min-width:720px){
-    #totalResultPill{ margin-right:0; }
-  }
+  #totalResultPill{ margin-right:6px; order:3; }
   .wealth-chart-wrap{ display:none; }
   @media (min-width:720px){
-    .head-expanded{ max-height:190px; }
-    .total-row{ align-items:center; }
-    .wealth-chart-wrap{
-      display:flex; flex-direction:column; justify-content:center; gap:2px; flex:1; min-width:220px; max-width:340px; height:64px;
+    .head-expanded{ max-height:250px; overflow:visible; }
+    .total-row{ align-items:center; flex-wrap:nowrap; }
+    #totalResultPill{
+      margin-right:0; order:3; flex:0 0 auto;
+      width:92px; height:92px; border-radius:50%;
+      flex-direction:column; justify-content:center; gap:2px;
+      padding:0; font-size:15px;
     }
-    .wealth-chart-wrap .lbl{ font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
-    .wealth-chart-wrap svg{ width:100%; height:52px; display:block; }
+    #totalResultPill .icn-arrow{ font-size:20px; }
+    .wealth-chart-wrap{
+      display:flex; flex-direction:column; justify-content:center; gap:2px; order:2;
+      flex:2 1 auto; min-width:200px; max-width:640px; height:78px; cursor:pointer;
+      border-radius: var(--radius-sm); padding:6px 10px; margin:0 4px;
+      transition: background .15s ease;
+    }
+    .wealth-chart-wrap:hover{ background: rgba(255,255,255,.04); }
+    .wealth-chart-wrap .lbl{ font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; display:flex; align-items:center; gap:5px; }
+    .wealth-chart-wrap .lbl .material-symbols-outlined{ font-size:13px; opacity:.6; }
+    .wealth-chart-wrap svg{ width:100%; height:64px; display:block; }
   }
   .total-value{ font-size:36px; font-weight:600; letter-spacing:-.01em; }
   .total-value small{ font-size:17px; color: var(--muted); font-weight:500; }
@@ -152,8 +161,8 @@
     animation: pillPulse 2.6s ease-in-out infinite;
     align-self:center; flex:0 0 auto; height:26px; box-sizing:border-box;
   }
-  .result-pill.pos{ color:#2EE6A6; background: rgba(46,230,166,.12); box-shadow:0 0 0 0 rgba(46,230,166,.3); }
-  .result-pill.neg{ color:#FF5C7A; background: rgba(255,92,122,.12); box-shadow:0 0 0 0 rgba(255,92,122,.3); }
+  .result-pill.pos{ color:#2EE6A6; background: rgba(46,230,166,.12); border:1.5px solid rgba(46,230,166,.55); box-shadow:0 0 0 0 rgba(46,230,166,.3); }
+  .result-pill.neg{ color:#FF5C7A; background: rgba(255,92,122,.12); border:1.5px solid rgba(255,92,122,.55); box-shadow:0 0 0 0 rgba(255,92,122,.3); }
   .result-pill.sm{ font-size:10.5px; padding:3px 8px; animation:none; height:20px; }
   @keyframes pillPulse{
     0%,100%{ box-shadow:0 0 0 0 currentColor; }
@@ -431,8 +440,8 @@
           </div>
         </div>
         <span class="result-pill pos" id="totalResultPill"><span class="material-symbols-outlined icn-arrow">arrow_upward</span> 0,00%</span>
-        <div class="wealth-chart-wrap">
-          <span class="lbl" id="wealthChartLbl">Evolução do patrimônio</span>
+        <div class="wealth-chart-wrap" id="wealthChartWrap" ondblclick="openWealthChartFull()" title="Clique duas vezes pra ver em tela cheia">
+          <span class="lbl" id="wealthChartLbl">Evolução do patrimônio <span class="material-symbols-outlined">open_in_full</span></span>
           <svg id="wealthChart" viewBox="0 0 300 52" preserveAspectRatio="none"></svg>
         </div>
       </div>
@@ -705,19 +714,7 @@ function getDemoWealthHistory(currentValue){
   return data;
 }
 
-function renderWealthChart(currentValue){
-  const svg = document.getElementById('wealthChart');
-  const lbl = document.getElementById('wealthChartLbl');
-  if (!svg) return;
-  let hist = (STATE.wealthHistory||[]).filter(h=>h.valor>0);
-  let isDemo = false;
-  if (hist.length < 2 && currentValue > 0){
-    hist = getDemoWealthHistory(currentValue);
-    isDemo = true;
-  }
-  if (lbl) lbl.innerHTML = 'Evolução do patrimônio' + (isDemo ? ' <span style="opacity:.6; text-transform:none; letter-spacing:0;">(exemplo — some quando houver histórico real)</span>' : '');
-  if (hist.length < 2){ svg.innerHTML = ''; return; }
-  const W=300, H=52, pad=3;
+function buildSparkline(hist, W, H, pad){
   const vals = hist.map(h=>h.valor);
   const min = Math.min(...vals), max = Math.max(...vals);
   const range = (max-min) || 1;
@@ -731,11 +728,78 @@ function renderWealthChart(currentValue){
   const color = up ? '#2EE6A6' : '#FF5C7A';
   const line = pts.map(p=>p.join(',')).join(' ');
   const areaPts = `${pad},${H-pad} ${line} ${W-pad},${H-pad}`;
+  return { pts, color, line, areaPts, up };
+}
+
+function renderWealthChart(currentValue){
+  const svg = document.getElementById('wealthChart');
+  const lbl = document.getElementById('wealthChartLbl');
+  if (!svg) return;
+  let hist = (STATE.wealthHistory||[]).filter(h=>h.valor>0);
+  let isDemo = false;
+  if (hist.length < 2 && currentValue > 0){
+    hist = getDemoWealthHistory(currentValue);
+    isDemo = true;
+  }
+  if (lbl) lbl.innerHTML = 'Evolução do patrimônio' + (isDemo ? ' <span style="opacity:.6; text-transform:none; letter-spacing:0;">(exemplo)</span>' : '') + ' <span class="material-symbols-outlined">open_in_full</span>';
+  if (hist.length < 2){ svg.innerHTML = ''; return; }
+  const W=300, H=52, pad=3;
+  const {pts, color, line, areaPts, up} = buildSparkline(hist, W, H, pad);
   svg.innerHTML = `
     <polygon points="${areaPts}" fill="${color}" opacity="0.12"></polygon>
     <polyline points="${line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" ${isDemo?'stroke-dasharray="4 3"':''}></polyline>
     <circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="2.4" fill="${color}"></circle>
   `;
+}
+
+function openWealthChartFull(){
+  if (window.innerWidth < 720) return; // recurso só faz sentido no desktop
+  const g = grandTotal();
+  let hist = (STATE.wealthHistory||[]).filter(h=>h.valor>0);
+  let isDemo = false;
+  if (hist.length < 2 && g.atual > 0){
+    hist = getDemoWealthHistory(g.atual);
+    isDemo = true;
+  }
+  if (hist.length < 2) return;
+  const W=680, H=280, pad=10;
+  const {pts, color, line, areaPts} = buildSparkline(hist, W, H, pad);
+  const first = hist[0], last = hist[hist.length-1];
+  const variacaoAbs = last.valor - first.valor;
+  const variacaoPct = first.valor>0 ? (variacaoAbs/first.valor*100) : 0;
+  const maxV = Math.max(...hist.map(h=>h.valor));
+  const minV = Math.min(...hist.map(h=>h.valor));
+  const dotsHtml = pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${color}" opacity="${i===pts.length-1?1:0.5}"><title>${fmtDate(hist[i].data)}: ${fmtBRL(hist[i].valor)}</title></circle>`).join('');
+  const rowsHtml = [...hist].reverse().map((h,i,arr)=>{
+    const prev = arr[i+1];
+    const delta = prev ? h.valor - prev.valor : 0;
+    return `<tr>
+      <td>${fmtDate(h.data)}</td>
+      <td class="money">${fmtBRL(h.valor)}</td>
+      <td class="money" style="color:${delta>=0?'#2EE6A6':'#FF5C7A'}">${prev ? (delta>=0?'+':'')+fmtBRL(delta) : '—'}</td>
+    </tr>`;
+  }).join('');
+  openModal(`
+    <div class="modal-head"><h3>Evolução do patrimônio</h3><button class="close" onclick="closeModalGuarded()"><span class="material-symbols-outlined icn-sm">close</span></button></div>
+    ${isDemo ? `<p class="desc" style="margin:-8px 0 14px;">Dados de exemplo — some automaticamente assim que houver histórico real com 2 ou mais dias.</p>` : ''}
+    <div class="dash-summary-row" style="grid-template-columns:repeat(4,1fr);">
+      <div class="dash-summary-card"><span class="lbl">Período</span><span class="val" style="font-size:13px;">${fmtDate(first.data)} – ${fmtDate(last.data)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Valor inicial</span><span class="val money">${fmtBRLShort(first.valor)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Valor atual</span><span class="val money">${fmtBRLShort(last.valor)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Variação</span><span class="val money" style="color:${variacaoAbs>=0?'#2EE6A6':'#FF5C7A'}">${variacaoAbs>=0?'+':''}${fmtBRLShort(variacaoAbs)} · ${fmtPct(variacaoPct)}</span></div>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:260px; display:block; margin:10px 0 18px;">
+      <polygon points="${areaPts}" fill="${color}" opacity="0.12"></polygon>
+      <polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" ${isDemo?'stroke-dasharray="6 4"':''}></polyline>
+      ${dotsHtml}
+    </svg>
+    <div class="dash-desktop-panel" style="display:block; margin-top:0;">
+      <table class="dash-table">
+        <thead><tr><th>Data</th><th>Valor</th><th>Variação no dia</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+  `, {large:true});
 }
 
 let LAST_TOTAL_ATUAL = null;
@@ -793,6 +857,12 @@ function renderTickerMarquee(){
   }).join('');
   // duplicated for a seamless infinite loop
   track.innerHTML = itemHtml + itemHtml;
+  // velocidade constante (px/s) em vez de duração fixa — assim, com mais
+  // ativos a faixa não acelera, só fica mais longa.
+  const halfWidth = track.scrollWidth / 2;
+  const PX_PER_SEC = 42;
+  const duration = Math.max(14, halfWidth / PX_PER_SEC);
+  track.style.animationDuration = duration + 's';
 }
 
 function handleScroll(){
