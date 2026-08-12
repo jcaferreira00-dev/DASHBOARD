@@ -126,11 +126,27 @@
   header.top.collapsed .head-expanded{ max-height:0; opacity:0; margin-top:0; }
 
   .total-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
-  /* No celular a bolinha de rentabilidade vira uma linha própria, cheia e
+  /* No celular a bolha de rentabilidade vira uma linha própria, cheia e
      centralizada, embaixo do valor total (que já fica abaixo dos 4 botões
-     do cabeçalho) — antes ela ficava espremida ao lado, meio à esquerda. */
+     do cabeçalho) — antes ela ficava espremida ao lado, meio à esquerda.
+     Os dois gráficos (barras de patrimônio + linha de rentabilidade) só
+     aparecem a partir do breakpoint desktop (ver media query abaixo),
+     porque no celular a largura não é suficiente pra mostrar tudo com
+     qualidade — igual já era o comportamento do gráfico único antigo. */
   #totalResultPill{ order:4; width:100%; justify-content:center; margin-top:8px; }
-  .wealth-chart-wrap{ display:none; }
+  .charts-row{ display:none; }
+
+  /* ===== Bolha (bubble) de rentabilidade =====
+     Antes era um círculo "chapado". Agora ganha camadas de radial-gradient
+     pra parecer uma esfera de vidro/gel (destaque de luz no canto superior
+     esquerdo + sombra interna embaixo), sombra externa colorida (glow) e
+     uma leve flutuação. A cor de tudo vem de `currentColor`, que é definida
+     pelas classes .pos (verde) / .neg (vermelho) mais abaixo — então basta
+     trocar a classe no JS pra toda a bolha mudar de cor de uma vez. */
+  .result-pill.bubble{
+    position:relative;
+    isolation:isolate;
+  }
   @media (min-width:720px){
     .head-expanded{ max-height:250px; overflow:visible; }
     .total-row{ align-items:center; flex-wrap:nowrap; }
@@ -141,16 +157,69 @@
       padding:0; font-size:15px;
     }
     #totalResultPill .icn-arrow{ font-size:20px; }
-    .wealth-chart-wrap{
-      display:flex; flex-direction:column; justify-content:center; gap:2px; order:2;
-      flex:2 1 auto; min-width:200px; max-width:640px; height:78px; cursor:pointer;
-      border-radius: var(--radius-sm); padding:6px 10px; margin:0 4px;
+    /* No desktop a bolha ganha o efeito de vidro descrito acima. `border`
+       e `box-shadow` usam currentColor (herdado da classe .pos/.neg) pra
+       não precisar duplicar a lógica de cor em CSS. */
+    .result-pill.bubble{
+      background:
+        radial-gradient(circle at 32% 26%, rgba(255,255,255,.65), rgba(255,255,255,0) 42%),
+        radial-gradient(circle at 68% 78%, color-mix(in srgb, currentColor 40%, transparent), transparent 60%),
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, currentColor 24%, #0A0E1A), #060811 82%);
+      border: 1.5px solid color-mix(in srgb, currentColor 55%, transparent);
+      box-shadow:
+        inset 0 3px 7px rgba(255,255,255,.35),
+        inset 0 -10px 16px rgba(0,0,0,.55),
+        0 0 24px -3px currentColor,
+        0 6px 14px rgba(0,0,0,.4);
+      animation: bubbleFloat 4.5s ease-in-out infinite, pillPulse 2.6s ease-in-out infinite;
+    }
+    @keyframes bubbleFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-4px); } }
+
+    /* ===== Faixa com os dois gráficos (barras + linha) =====
+       `.charts-row` é o container flex que fica entre o total (à esquerda)
+       e a bolha (à direita) — exatamente na mesma "fatia" de largura que o
+       gráfico único antigo ocupava, só que agora dividida ao meio entre
+       `.chart-wrap.bars` (evolução do patrimônio) e `.chart-wrap.line`
+       (rentabilidade). Por isso a largura total do cabeçalho não muda. */
+    .charts-row{
+      display:flex; gap:8px; order:2;
+      flex:2 1 auto; min-width:220px; max-width:640px;
+    }
+    .chart-wrap{
+      display:flex; flex-direction:column; justify-content:center; gap:2px;
+      flex:1 1 0; min-width:120px; height:78px; cursor:pointer;
+      border-radius: var(--radius-sm); padding:6px 10px;
       transition: background .15s ease;
     }
-    .wealth-chart-wrap:hover{ background: rgba(255,255,255,.04); }
-    .wealth-chart-wrap .lbl{ font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; display:flex; align-items:center; gap:5px; }
-    .wealth-chart-wrap .lbl .material-symbols-outlined{ font-size:13px; opacity:.6; }
-    .wealth-chart-wrap svg{ width:100%; height:64px; display:block; }
+    .chart-wrap:hover{ background: rgba(255,255,255,.04); }
+    .chart-wrap .lbl{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; display:flex; align-items:center; gap:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .chart-wrap .lbl .material-symbols-outlined{ font-size:13px; opacity:.6; }
+    .chart-wrap svg{ width:100%; height:64px; display:block; }
+  }
+
+  /* ===== Gráfico de barras (evolução do patrimônio, mês a mês) =====
+     Cada <rect> é desenhado com uma cor diferente (gradiente azul → verde,
+     ver barColorForIndex() no JS) pra imitar a referência visual. */
+  .bar-rect{ transition: opacity .15s ease; }
+  .bar-rect:hover{ opacity:.8; }
+  .bar-month-label{ font-family:'Space Grotesk',sans-serif; font-size:7px; fill:var(--muted); }
+
+  /* ===== Farol de meta (ao lado do ticker, entre nome e valor) =====
+     Bolinha (maior que os outros indicadores da tela, a pedido) que fica
+     verde quando a posição está dentro da meta configurada (% de aporte
+     alvo e/ou valor teto, ambos digitáveis dentro do card da posição) e
+     vermelha quando ultrapassa qualquer uma delas. Quando a posição não
+     tem meta nenhuma configurada (os dois campos zerados), o farol nem é
+     desenhado — ver farolHtml() no JS. */
+  .farol{
+    width:15px; height:15px; border-radius:50%; flex-shrink:0;
+    background: var(--farol-color);
+    box-shadow: 0 0 9px 2px var(--farol-color), inset 0 -2px 3px rgba(0,0,0,.35), inset 0 2px 3px rgba(255,255,255,.45);
+    animation: farolPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes farolPulse{
+    0%,100%{ box-shadow: 0 0 7px 1px var(--farol-color), inset 0 -2px 3px rgba(0,0,0,.35), inset 0 2px 3px rgba(255,255,255,.45); }
+    50%{ box-shadow: 0 0 15px 4px var(--farol-color), inset 0 -2px 3px rgba(0,0,0,.35), inset 0 2px 3px rgba(255,255,255,.45); }
   }
   .total-value{ font-size:36px; font-weight:600; letter-spacing:-.01em; }
   .total-value small{ font-size:17px; color: var(--muted); font-weight:500; }
@@ -262,8 +331,12 @@
   .ledger{ border:1px solid var(--rule); border-radius: var(--radius); overflow:hidden; background: var(--surface); }
   .pos-row{ border-bottom:1px solid var(--rule); }
   .pos-row:last-child{ border-bottom:none; }
-  .pos-head{ display:flex; align-items:center; justify-content:space-between; padding:13px 14px; cursor:pointer; gap:10px; }
-  .pos-id{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  /* `.pos-head` deixou de usar justify-content:space-between (que jogava o
+     farol pro meio "flutuando" sem relação visual com o texto). Agora
+     `.pos-id` cresce (flex:1) e empurra o farol + os números pra direita,
+     então o farol sempre fica exatamente entre o nome do ativo e o valor. */
+  .pos-head{ display:flex; align-items:center; padding:13px 14px; cursor:pointer; gap:10px; }
+  .pos-id{ display:flex; flex-direction:column; gap:2px; min-width:0; flex:1 1 auto; }
   .pos-id .tk{ font-weight:600; font-size:14.5px; }
   .pos-id .sub{ font-size:11.5px; color: var(--muted); }
   .pos-nums{ text-align:right; flex-shrink:0; }
@@ -450,11 +523,22 @@
             <span class="material-symbols-outlined">pie_chart</span> Composição do total
           </button>
         </div>
-        <span class="result-pill pos" id="totalResultPill"><span class="material-symbols-outlined icn-arrow">arrow_upward</span> 0,00%</span>
-        <div class="wealth-chart-wrap" id="wealthChartWrap" ondblclick="openWealthChartFull()" title="Clique duas vezes pra ver em tela cheia">
-          <span class="lbl" id="wealthChartLbl">Evolução do patrimônio <span class="material-symbols-outlined">open_in_full</span></span>
-          <svg id="wealthChart" viewBox="0 0 300 52" preserveAspectRatio="none"></svg>
+        <!-- Faixa com os dois gráficos: barras (patrimônio mês a mês) e
+             linha (tendência de rentabilidade). Só aparece no desktop
+             (ver .charts-row na media query min-width:720px). -->
+        <div class="charts-row" id="chartsRow">
+          <div class="chart-wrap bars" id="patrimonioBarWrap" ondblclick="openPatrimonioBarModal()" title="Clique duas vezes pra ver o detalhamento mês a mês">
+            <span class="lbl" id="patrimonioBarLbl">Evolução do patrimônio <span class="material-symbols-outlined">open_in_full</span></span>
+            <svg id="patrimonioBarChart" viewBox="0 0 300 66" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="chart-wrap line" id="rentLineWrap" ondblclick="openRentLineFull()" title="Clique duas vezes pra ver em tela cheia">
+            <span class="lbl" id="rentLineLbl">Rentabilidade <span class="material-symbols-outlined">open_in_full</span></span>
+            <svg id="rentLineChart" viewBox="0 0 300 52" preserveAspectRatio="none"></svg>
+          </div>
         </div>
+        <!-- Bolha com a rentabilidade total atual. A classe "bubble" ativa
+             o efeito visual de esfera de vidro (ver CSS .result-pill.bubble). -->
+        <span class="result-pill bubble pos" id="totalResultPill"><span class="material-symbols-outlined icn-arrow">arrow_upward</span> 0,00%</span>
       </div>
     </div>
 
@@ -486,6 +570,33 @@
 
 <script type="module" src="cloud-sync.js"></script>
 <script>
+/* =========================================================
+   MAPA GERAL DO ARQUIVO (pra achar rápido o que você quer editar)
+   ---------------------------------------------------------
+   1. ESTADO / MODELO DE DADOS      -> defaultState, normalizeState, DB{}
+   2. FORMAT HELPERS                -> fmtBRL, fmtPct, fmtDate...
+   3. DERIVED CALCS                 -> calcPositionMetrics, catTotals,
+                                        grandTotal, FAROL DE META (verde/
+                                        vermelho dos ativos)
+   4. RENDIMENTO FIXO               -> juros compostos (FGTS etc)
+   5. DONUT DUPLO (SVG)             -> gráfico de rosca da composição
+   6. RENDER: HEADER                -> gráfico de BARRAS (patrimônio por
+                                        mês), gráfico de LINHA (rentabili-
+                                        dade), bolha (bubble) de % atual,
+                                        renderHeader()
+   7. renderTickerMarquee           -> faixa de cotações rolando no topo
+   8. RENDER: TABS / PANELS         -> renderMarketPanel (lista de ativos,
+                                        com o farol entre nome e valor),
+                                        renderSaldoPanel, dashboards
+   9. MODAIS (openModal + telas)    -> adicionar ativo, comprar/vender,
+                                        editar meta, ferramentas, etc.
+   10. AÇÕES DO USUÁRIO              -> updatePrice, updatePosAlvo,
+                                        deletePosition, buy/sell, etc.
+   11. CLOUD SYNC / BOOT             -> login, sincronização, init()
+   Cada bloco abaixo também tem seu próprio comentário "====" explicando
+   o que faz — use Ctrl+F pelos títulos em CAIXA ALTA acima.
+========================================================= */
+
 /* =========================================================
    ESTADO / MODELO DE DADOS
    categories: lista de guias (fixas + criadas pelo usuário)
@@ -638,6 +749,38 @@ function calcPositionMetrics(pos){
   const resultado = atual - investido;
   const pct = investido > 0 ? (resultado/investido*100) : 0;
   return { investido, atual, resultado, pct };
+}
+
+/* =========================================================
+   FAROL DE META (Ações/FIIs)
+   ---------------------------------------------------------
+   Usa os dois campos que já existiam por posição:
+     pos.valorTeto      -> valor máximo (R$) que essa posição deveria ter
+     pos.pctAporteAlvo  -> % máximo que essa posição deveria representar
+                            do total já investido na guia (Ações ou FIIs)
+   Verde  = dentro das duas metas configuradas (ou de quem estiver ativa).
+   Vermelho = estourou o valor teto e/ou o % alvo.
+   null   = posição sem nenhuma meta configurada (os dois campos em 0) ->
+            o farol simplesmente não é desenhado (ver farolHtml).
+========================================================= */
+function assetFarolStatus(pos, valorAtual, pctDoTotalCategoria){
+  const temTeto = (pos.valorTeto||0) > 0;
+  const temPctAlvo = (pos.pctAporteAlvo||0) > 0;
+  if (!temTeto && !temPctAlvo) return null;
+  let dentroDaMeta = true;
+  if (temTeto) dentroDaMeta = dentroDaMeta && (valorAtual <= pos.valorTeto);
+  if (temPctAlvo) dentroDaMeta = dentroDaMeta && (pctDoTotalCategoria <= pos.pctAporteAlvo);
+  return dentroDaMeta ? 'green' : 'red';
+}
+// Gera o HTML da bolinha do farol. `status` vem de assetFarolStatus() —
+// se for null, retorna string vazia (sem farol na tela).
+function farolHtml(status){
+  if (!status) return '';
+  const cor = status === 'green' ? '#2EE6A6' : '#FF5C7A';
+  const titulo = status === 'green'
+    ? 'Dentro da meta (% de aporte e valor teto)'
+    : 'Fora da meta: revise o % de aporte alvo ou o valor teto dessa posição';
+  return `<span class="farol" title="${titulo}" style="--farol-color:${cor}"></span>`;
 }
 
 function marketTotals(catId){
@@ -812,62 +955,263 @@ function buildSparkline(hist, W, H, pad){
   return { pts, color, line, areaPts, up };
 }
 
-function renderWealthChart(currentValue){
-  const svg = document.getElementById('wealthChart');
-  const lbl = document.getElementById('wealthChartLbl');
+/* =========================================================
+   GRÁFICO DE BARRAS — "Evolução do patrimônio" (mês a mês)
+   ---------------------------------------------------------
+   Diferente do gráfico de linha (que usa TODOS os snapshots diários do
+   STATE.wealthHistory), aqui agrupamos por mês: pra cada "AAAA-MM" fica só
+   o ÚLTIMO snapshot registrado naquele mês (ou seja, o valor do patrimônio
+   no fim de cada mês). Isso é o que vira uma barra na tela.
+========================================================= */
+const MONTH_LABELS_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+// Pega o histórico real (STATE.wealthHistory) e agrupa por mês. Se dois
+// snapshots caem no mesmo mês, fica o mais recente dos dois (Map preserva
+// a última escrita pra cada chave).
+function getMonthlyPatrimonioHistory(){
+  const hist = (STATE.wealthHistory||[]).filter(h=>h.valor>0).sort((a,b)=>a.data.localeCompare(b.data));
+  const porMes = new Map();
+  hist.forEach(h=> porMes.set(h.data.slice(0,7), h));
+  return [...porMes.values()];
+}
+
+// Histórico mensal fictício, só pra visualizar o gráfico de barras antes
+// de existirem 2+ meses de uso real. Segue o mesmo espírito de
+// getDemoWealthHistory() (cache em memória, nunca é salvo no STATE).
+let DEMO_MONTHLY_CACHE = null;
+function getDemoMonthlyHistory(currentValue){
+  if (DEMO_MONTHLY_CACHE && Math.abs(DEMO_MONTHLY_CACHE.base - currentValue) < 0.005){
+    return DEMO_MONTHLY_CACHE.data;
+  }
+  const months = 6; // ~6 barras de exemplo, como na referência
+  let seed = Math.round(currentValue * 131) || 5;
+  const rnd = () => { seed = (seed*9301+49297) % 233280; return seed/233280; };
+  const vals = [currentValue];
+  for (let i=1; i<months; i++){
+    const queda = 0.05 + rnd()*0.10; // cada mês anterior fica 5%–15% menor (tendência de alta, como na imagem)
+    vals.unshift(vals[0] / (1+queda));
+  }
+  const today = new Date();
+  const data = vals.map((v,i)=>{
+    const d = new Date(today.getFullYear(), today.getMonth() - (months-1-i), 1);
+    return { data: d.toISOString().slice(0,10), valor: v };
+  });
+  DEMO_MONTHLY_CACHE = { base: currentValue, data };
+  return data;
+}
+
+// Interpola uma cor por barra, indo de azul (primeiro mês) a verde
+// (mês mais recente) — é a mesma ideia de gradiente da imagem de
+// referência. Pra trocar a paleta, basta mudar hueStart/hueEnd.
+function barColorForIndex(i, n){
+  const hueStart = 206, hueEnd = 150;
+  const t = n>1 ? i/(n-1) : 1;
+  const hue = hueStart + (hueEnd-hueStart)*t;
+  return `hsl(${hue.toFixed(0)} 78% 56%)`;
+}
+
+function renderPatrimonioBars(currentValue){
+  const svg = document.getElementById('patrimonioBarChart');
+  const lbl = document.getElementById('patrimonioBarLbl');
   if (!svg) return;
-  let hist = (STATE.wealthHistory||[]).filter(h=>h.valor>0);
+  let hist = getMonthlyPatrimonioHistory();
   let isDemo = false;
   if (hist.length < 2 && currentValue > 0){
-    hist = getDemoWealthHistory(currentValue);
+    hist = getDemoMonthlyHistory(currentValue);
     isDemo = true;
   }
   if (lbl) lbl.innerHTML = 'Evolução do patrimônio' + (isDemo ? ' <span style="opacity:.6; text-transform:none; letter-spacing:0;">(exemplo)</span>' : '') + ' <span class="material-symbols-outlined">open_in_full</span>';
   if (hist.length < 2){ svg.innerHTML = ''; return; }
+
+  const W=300, H=66, pad=4, labelH=10; // labelH reserva espaço pro mês embaixo da barra
+  const plotH = H - pad - labelH;
+  const maxV = Math.max(...hist.map(h=>h.valor)) || 1;
+  const n = hist.length;
+  const gap = 4;
+  const barW = (W - pad*2 - gap*(n-1)) / n;
+
+  const bars = hist.map((h,i)=>{
+    const x = pad + i*(barW+gap);
+    const barH = Math.max(2, (h.valor/maxV) * plotH);
+    const y = plotH - barH + pad*0.4;
+    const color = barColorForIndex(i, n);
+    const mes = MONTH_LABELS_PT[new Date(h.data+'T00:00:00').getMonth()];
+    return `
+      <rect class="bar-rect" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="1.6" fill="${color}" ${isDemo?'opacity="0.75"':''}>
+        <title>${mes}: ${fmtBRLShort(h.valor)}</title>
+      </rect>
+      <text class="bar-month-label" x="${(x+barW/2).toFixed(1)}" y="${H-1}" text-anchor="middle">${mes}</text>
+    `;
+  }).join('');
+  svg.innerHTML = bars;
+}
+
+// Modal de detalhe (duplo clique na barra): mostra as barras maiores + uma
+// tabela mês a mês com o resultado de cada período.
+function openPatrimonioBarModal(){
+  if (window.innerWidth < 720) return; // recurso só faz sentido no desktop
+  const g = grandTotal();
+  let hist = getMonthlyPatrimonioHistory();
+  let isDemo = false;
+  if (hist.length < 2 && g.atual > 0){
+    hist = getDemoMonthlyHistory(g.atual);
+    isDemo = true;
+  }
+  if (hist.length < 2) return;
+
+  const W=680, H=280, pad=10, labelH=22;
+  const plotH = H - pad - labelH;
+  const maxV = Math.max(...hist.map(h=>h.valor)) || 1;
+  const n = hist.length;
+  const gap = 14;
+  const barW = (W - pad*2 - gap*(n-1)) / n;
+  const barsHtml = hist.map((h,i)=>{
+    const x = pad + i*(barW+gap);
+    const barH = Math.max(2, (h.valor/maxV) * plotH);
+    const y = plotH - barH + pad*0.4;
+    const color = barColorForIndex(i, n);
+    const mes = MONTH_LABELS_PT[new Date(h.data+'T00:00:00').getMonth()];
+    return `
+      <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="3" fill="${color}" ${isDemo?'opacity="0.75"':''}>
+        <title>${mes}: ${fmtBRL(h.valor)}</title>
+      </rect>
+      <text x="${(x+barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" style="font-size:11px; fill:var(--muted);">${mes}</text>
+    `;
+  }).join('');
+
+  const first = hist[0], last = hist[hist.length-1];
+  const variacaoAbs = last.valor - first.valor;
+  const variacaoPct = first.valor>0 ? (variacaoAbs/first.valor*100) : 0;
+  const rowsHtml = [...hist].reverse().map((h,i,arr)=>{
+    const prev = arr[i+1];
+    const delta = prev ? h.valor - prev.valor : 0;
+    const mes = MONTH_LABELS_PT[new Date(h.data+'T00:00:00').getMonth()];
+    return `<tr>
+      <td>${mes}/${h.data.slice(0,4)}</td>
+      <td class="money">${fmtBRL(h.valor)}</td>
+      <td class="money" style="color:${delta>=0?'#2EE6A6':'#FF5C7A'}">${prev ? (delta>=0?'+':'')+fmtBRL(delta) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  openModal(`
+    <div class="modal-head"><h3>Evolução do patrimônio</h3><button class="close" onclick="closeModalGuarded()"><span class="material-symbols-outlined icn-sm">close</span></button></div>
+    ${isDemo ? `<p class="desc" style="margin:-8px 0 14px;">Dados de exemplo — some automaticamente assim que houver histórico real com 2 ou mais meses.</p>` : ''}
+    <div class="dash-summary-row" style="grid-template-columns:repeat(4,1fr);">
+      <div class="dash-summary-card"><span class="lbl">Período</span><span class="val" style="font-size:13px;">${MONTH_LABELS_PT[new Date(first.data+'T00:00:00').getMonth()]}/${first.data.slice(0,4)} – ${MONTH_LABELS_PT[new Date(last.data+'T00:00:00').getMonth()]}/${last.data.slice(0,4)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Valor inicial</span><span class="val money">${fmtBRLShort(first.valor)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Valor atual</span><span class="val money">${fmtBRLShort(last.valor)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Variação</span><span class="val money" style="color:${variacaoAbs>=0?'#2EE6A6':'#FF5C7A'}">${variacaoAbs>=0?'+':''}${fmtBRLShort(variacaoAbs)} · ${fmtPct(variacaoPct)}</span></div>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:260px; display:block; margin:10px 0 18px;">${barsHtml}</svg>
+    <div class="dash-desktop-panel" style="display:block; margin-top:0;">
+      <table class="dash-table">
+        <thead><tr><th>Mês</th><th>Valor</th><th>Variação no mês</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+  `, {large:true});
+}
+
+/* =========================================================
+   LINHA DE TENDÊNCIA — "Rentabilidade"
+   ---------------------------------------------------------
+   O app só guarda o histórico do VALOR total (wealthHistory), não guarda
+   um histórico do quanto foi aportado em cada dia. Então a rentabilidade
+   de cada snapshot antigo é uma APROXIMAÇÃO: usamos o "investido" atual
+   (g.investido) como referência fixa pra todos os pontos. Funciona bem no
+   dia a dia (o valor investido muda pouco de um dia pro outro), mas não é
+   um cálculo histórico exato — se você fizer um aporte grande, os pontos
+   antigos do gráfico vão "pular" um pouco. Se um dia quiser precisão
+   total, o jeito é passar a guardar {data, valor, investido} em cada
+   snapshot (recordWealthSnapshot) em vez de só {data, valor}.
+========================================================= */
+function getRentabilidadeHistory(g){
+  const hist = (STATE.wealthHistory||[]).filter(h=>h.valor>0);
+  if (g.investido <= 0) return [];
+  return hist.map(h => ({ data: h.data, valor: ((h.valor - g.investido) / g.investido) * 100 }));
+}
+
+// Linha de exemplo (sobe e desce, como a da imagem de referência) —
+// oscila em torno da rentabilidade atual real, só pra preencher o espaço
+// enquanto não há 2+ dias de histórico de verdade.
+let DEMO_RENT_CACHE = null;
+function getDemoRentHistory(currentPct){
+  if (DEMO_RENT_CACHE && Math.abs(DEMO_RENT_CACHE.base - currentPct) < 0.005){
+    return DEMO_RENT_CACHE.data;
+  }
+  const days = 10;
+  let seed = Math.round(currentPct * 977) || 7;
+  const rnd = () => { seed = (seed*9301+49297) % 233280; return seed/233280; };
+  const vals = [currentPct];
+  for (let i=1; i<days; i++){
+    const variacao = (rnd()*2.4 - 1.2); // ±1.2 ponto percentual por "dia", andando pra trás
+    vals.unshift(vals[0] - variacao);
+  }
+  const today = new Date();
+  const data = vals.map((v,i)=>{
+    const d = new Date(today); d.setDate(d.getDate() - (days-1-i));
+    return { data: d.toISOString().slice(0,10), valor: v };
+  });
+  DEMO_RENT_CACHE = { base: currentPct, data };
+  return data;
+}
+
+function renderRentLineChart(g){
+  const svg = document.getElementById('rentLineChart');
+  const lbl = document.getElementById('rentLineLbl');
+  if (!svg) return;
+  let hist = getRentabilidadeHistory(g);
+  let isDemo = false;
+  if (hist.length < 2){
+    hist = getDemoRentHistory(g.pct);
+    isDemo = true;
+  }
+  if (lbl) lbl.innerHTML = 'Rentabilidade' + (isDemo ? ' <span style="opacity:.6; text-transform:none; letter-spacing:0;">(exemplo)</span>' : '') + ' <span class="material-symbols-outlined">open_in_full</span>';
+  if (hist.length < 2){ svg.innerHTML = ''; return; }
   const W=300, H=52, pad=3;
-  const {pts, color, line, areaPts, up} = buildSparkline(hist, W, H, pad);
+  // A "bolinha" da rentabilidade fica centralizada na linha, como pedido —
+  // por isso usamos o ponto do MEIO do histórico (não o último) pra
+  // desenhar o círculo de destaque.
+  const {pts, color, line, areaPts} = buildSparkline(hist, W, H, pad);
+  const midIdx = Math.floor((pts.length-1)/2);
   svg.innerHTML = `
     <polygon points="${areaPts}" fill="${color}" opacity="0.12"></polygon>
     <polyline points="${line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" ${isDemo?'stroke-dasharray="4 3"':''}></polyline>
-    <circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="2.4" fill="${color}"></circle>
+    <circle cx="${pts[midIdx][0]}" cy="${pts[midIdx][1]}" r="3" fill="${color}" stroke="#0A0E1A" stroke-width="1.2"></circle>
   `;
 }
 
-function openWealthChartFull(){
+function openRentLineFull(){
   if (window.innerWidth < 720) return; // recurso só faz sentido no desktop
   const g = grandTotal();
-  let hist = (STATE.wealthHistory||[]).filter(h=>h.valor>0);
+  let hist = getRentabilidadeHistory(g);
   let isDemo = false;
-  if (hist.length < 2 && g.atual > 0){
-    hist = getDemoWealthHistory(g.atual);
+  if (hist.length < 2){
+    hist = getDemoRentHistory(g.pct);
     isDemo = true;
   }
   if (hist.length < 2) return;
   const W=680, H=280, pad=10;
   const {pts, color, line, areaPts} = buildSparkline(hist, W, H, pad);
   const first = hist[0], last = hist[hist.length-1];
-  const variacaoAbs = last.valor - first.valor;
-  const variacaoPct = first.valor>0 ? (variacaoAbs/first.valor*100) : 0;
-  const maxV = Math.max(...hist.map(h=>h.valor));
-  const minV = Math.min(...hist.map(h=>h.valor));
-  const dotsHtml = pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${color}" opacity="${i===pts.length-1?1:0.5}"><title>${fmtDate(hist[i].data)}: ${fmtBRL(hist[i].valor)}</title></circle>`).join('');
+  const variacaoPct = last.valor - first.valor;
+  const dotsHtml = pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${color}" opacity="${i===pts.length-1?1:0.5}"><title>${fmtDate(hist[i].data)}: ${fmtPct(hist[i].valor)}</title></circle>`).join('');
   const rowsHtml = [...hist].reverse().map((h,i,arr)=>{
     const prev = arr[i+1];
     const delta = prev ? h.valor - prev.valor : 0;
     return `<tr>
       <td>${fmtDate(h.data)}</td>
-      <td class="money">${fmtBRL(h.valor)}</td>
-      <td class="money" style="color:${delta>=0?'#2EE6A6':'#FF5C7A'}">${prev ? (delta>=0?'+':'')+fmtBRL(delta) : '—'}</td>
+      <td class="money">${fmtPct(h.valor)}</td>
+      <td class="money" style="color:${delta>=0?'#2EE6A6':'#FF5C7A'}">${prev ? (delta>=0?'+':'') + delta.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' p.p.' : '—'}</td>
     </tr>`;
   }).join('');
   openModal(`
-    <div class="modal-head"><h3>Evolução do patrimônio</h3><button class="close" onclick="closeModalGuarded()"><span class="material-symbols-outlined icn-sm">close</span></button></div>
+    <div class="modal-head"><h3>Rentabilidade</h3><button class="close" onclick="closeModalGuarded()"><span class="material-symbols-outlined icn-sm">close</span></button></div>
     ${isDemo ? `<p class="desc" style="margin:-8px 0 14px;">Dados de exemplo — some automaticamente assim que houver histórico real com 2 ou mais dias.</p>` : ''}
-    <div class="dash-summary-row" style="grid-template-columns:repeat(4,1fr);">
+    <div class="dash-summary-row" style="grid-template-columns:repeat(3,1fr);">
       <div class="dash-summary-card"><span class="lbl">Período</span><span class="val" style="font-size:13px;">${fmtDate(first.data)} – ${fmtDate(last.data)}</span></div>
-      <div class="dash-summary-card"><span class="lbl">Valor inicial</span><span class="val money">${fmtBRLShort(first.valor)}</span></div>
-      <div class="dash-summary-card"><span class="lbl">Valor atual</span><span class="val money">${fmtBRLShort(last.valor)}</span></div>
-      <div class="dash-summary-card"><span class="lbl">Variação</span><span class="val money" style="color:${variacaoAbs>=0?'#2EE6A6':'#FF5C7A'}">${variacaoAbs>=0?'+':''}${fmtBRLShort(variacaoAbs)} · ${fmtPct(variacaoPct)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Rentabilidade atual</span><span class="val money" style="color:${last.valor>=0?'#2EE6A6':'#FF5C7A'}">${fmtPct(last.valor)}</span></div>
+      <div class="dash-summary-card"><span class="lbl">Variação no período</span><span class="val money" style="color:${variacaoPct>=0?'#2EE6A6':'#FF5C7A'}">${variacaoPct>=0?'+':''}${variacaoPct.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} p.p.</span></div>
     </div>
     <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:260px; display:block; margin:10px 0 18px;">
       <polygon points="${areaPts}" fill="${color}" opacity="0.12"></polygon>
@@ -876,7 +1220,7 @@ function openWealthChartFull(){
     </svg>
     <div class="dash-desktop-panel" style="display:block; margin-top:0;">
       <table class="dash-table">
-        <thead><tr><th>Data</th><th>Valor</th><th>Variação no dia</th></tr></thead>
+        <thead><tr><th>Data</th><th>Rentabilidade</th><th>Variação no dia</th></tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>
@@ -912,8 +1256,10 @@ function renderHeader(){
   document.getElementById('totalInvested').textContent = fmtBRLShort(g.investido);
   document.getElementById('totalResultAbs').textContent = (g.resultado>=0?'+':'-') + fmtBRLShort(Math.abs(g.resultado));
 
+  // "bubble" fica sempre na classe pra manter o efeito de esfera de vidro
+  // (ver CSS .result-pill.bubble); só pos/neg alternam a cor via currentColor.
   const pill = document.getElementById('totalResultPill');
-  pill.className = 'result-pill ' + (g.resultado>=0?'pos':'neg');
+  pill.className = 'result-pill bubble ' + (g.resultado>=0?'pos':'neg');
   pill.innerHTML = arrowIcon(g.resultado>=0) + ' ' + fmtPct(Math.abs(g.pct)).replace('+','');
 
   document.getElementById('totalValueMini').textContent = fmtBRLShort(g.atual);
@@ -922,7 +1268,10 @@ function renderHeader(){
   pillMini.innerHTML = arrowIcon(g.resultado>=0, 12) + ' ' + fmtPct(Math.abs(g.pct)).replace('+','');
 
   renderDoubleDonut('donutMini', allocationSegments(g), innerRingSegments(g), 15, 3.4, 8.4, 3.2);
-  renderWealthChart(g.atual);
+  // Os dois gráficos do cabeçalho: barras (patrimônio por mês) e linha
+  // (tendência de rentabilidade). Ver as duas seções de funções logo acima.
+  renderPatrimonioBars(g.atual);
+  renderRentLineChart(g);
 }
 
 function renderTickerMarquee(){
@@ -1044,6 +1393,9 @@ function renderMarketPanel(cat){
     const isOpen = OPEN_ROWS.has(pos.id);
     const hist = STATE.data[cat.id].history.filter(h=>h.positionId===pos.id).sort((a,b)=>b.data.localeCompare(a.data));
     const pctDoTotalCategoria = t.atual>0 ? (m.atual/t.atual*100) : 0;
+    // Farol só faz sentido pra Ações/FIIs, que são as guias com % de aporte
+    // alvo e valor teto digitáveis (ver mostraAlvoPosicao acima).
+    const farol = mostraAlvoPosicao ? farolHtml(assetFarolStatus(pos, m.atual, pctDoTotalCategoria)) : '';
     html += `
       <div class="pos-row">
         <div class="pos-head" onclick="toggleRow('${pos.id}')">
@@ -1051,6 +1403,7 @@ function renderMarketPanel(cat){
             <span class="tk mono">${pos.ticker}</span>
             <span class="sub">${fmtNum(pos.qtd, cat.id==='crypto'?4:0)} un · PM <span class="money">${fmtBRL(pos.precoMedio)}</span></span>
           </div>
+          ${farol}
           <div class="pos-nums">
             <div class="val mono money">${fmtBRL(m.atual)}</div>
             <div class="chg mono ${m.resultado>=0?'up':'down'}" style="color:${m.resultado>=0?'#2EE6A6':'#FF5C7A'}">${arrowIcon(m.resultado>=0,14)} ${fmtPct(m.pct)}</div>
