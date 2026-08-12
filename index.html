@@ -126,47 +126,43 @@
   header.top.collapsed .head-expanded{ max-height:0; opacity:0; margin-top:0; }
 
   .total-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
-  /* No celular a bolha de rentabilidade vira uma linha própria, cheia e
-     centralizada, embaixo do valor total (que já fica abaixo dos 4 botões
-     do cabeçalho) — antes ela ficava espremida ao lado, meio à esquerda.
+  /* No celular a bolha fica PEQUENA e à direita, na mesma linha do valor
+     total — igual era antes de eu tentar deixá-la grande e centralizada
+     embaixo (isso vazava pra fora do cabeçalho, que tem altura limitada
+     no celular via .head-expanded{ max-height:150px }, e cortava a bolha
+     pela metade). `.bubble-wrap` não força mais largura 100%/quebra de
+     linha — ele só é o último item do `.total-row`, que já tem
+     justify-content:space-between, então cai naturalmente à direita.
      Os dois gráficos (barras de patrimônio + linha de rentabilidade) só
-     aparecem a partir do breakpoint desktop (ver media query abaixo),
-     porque no celular a largura não é suficiente pra mostrar tudo com
-     qualidade — igual já era o comportamento do gráfico único antigo.
-     A centralização usa um wrapper próprio (.bubble-wrap) com
-     display:flex + justify-content:center, em vez de "margin:auto" solto
-     — assim ela fica sempre centralizada de verdade, não dependendo da
-     largura dos itens vizinhos dentro do flex do .total-row. */
-  .bubble-wrap{ order:4; width:100%; display:flex; justify-content:center; margin-top:14px; }
+     aparecem a partir do breakpoint desktop (ver media query abaixo). */
+  .bubble-wrap{ order:4; flex:0 0 auto; }
   .charts-row{ display:none; }
 
   /* ===== Bolha (bubble) de rentabilidade =====
-     No CELULAR mantemos simples: uma elipse "chapada" com um gradiente
-     leve de cima pra baixo (mais clara em cima, mais escura embaixo) e um
-     glow externo — sem os pseudo-elementos de brilho (aquilo só compensa
-     em tamanhos maiores; pequeno, no celular, mais atrapalhava do que
-     ajudava). No DESKTOP (media query lá embaixo) ela vira um círculo com
-     o efeito completo de esfera de vidro (dois brilhos sobrepostos).
+     No CELULAR é uma elipse pequena e simples (só um gradiente leve +
+     glow) pra caber tranquilamente na altura do cabeçalho. No DESKTOP
+     (media query lá embaixo) ela vira um círculo grande com o efeito
+     completo de esfera de vidro (dois brilhos sobrepostos).
      A cor de tudo vem de `currentColor`, definida pelas classes .pos
      (verde) / .neg (vermelho) mais abaixo — então basta trocar a classe
      no JS pra toda a bolha mudar de cor de uma vez, nos dois formatos. */
   .result-pill.bubble{
     position:relative; isolation:isolate; overflow:visible;
-    width:150px; height:104px; border-radius:50%;
-    flex-direction:column; justify-content:center; align-items:center; gap:1px;
-    padding:0; font-size:18px; font-weight:700; border:none;
+    width:78px; height:46px; border-radius:50%;
+    flex-direction:column; justify-content:center; align-items:center; gap:0;
+    padding:0; font-size:12.5px; font-weight:700; border:none;
     background: linear-gradient(165deg,
       color-mix(in srgb, currentColor 82%, #fff 18%) 0%,
       currentColor 55%,
       color-mix(in srgb, currentColor 78%, #000 32%) 100%);
     box-shadow:
-      0 10px 22px -6px rgba(0,0,0,.45),
-      0 0 34px -6px currentColor;
-    animation: bubbleFloat 4.5s ease-in-out infinite, pillPulse 2.6s ease-in-out infinite;
+      0 6px 14px -5px rgba(0,0,0,.45),
+      0 0 18px -4px currentColor;
+    animation: pillPulse 2.6s ease-in-out infinite;
   }
   .result-pill.bubble::before, .result-pill.bubble::after{ content:none; } /* só entram no desktop */
   .result-pill.bubble > *{ position:relative; z-index:1; } /* texto/ícone acima dos brilhos (quando existirem) */
-  .result-pill.bubble .icn-arrow{ font-size:22px; }
+  .result-pill.bubble .icn-arrow{ font-size:14px; }
   @keyframes bubbleFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
   @media (min-width:720px){
     .head-expanded{ max-height:270px; overflow:visible; }
@@ -178,6 +174,7 @@
        ::before/::after (brilho grande e suave + ponto de reflexo nítido). */
     .result-pill.bubble{
       width:150px; height:150px; font-size:22px;
+      animation: bubbleFloat 4.5s ease-in-out infinite, pillPulse 2.6s ease-in-out infinite;
       background:
         radial-gradient(circle at 50% 108%, color-mix(in srgb, currentColor 85%, #000) 0%, transparent 55%),
         radial-gradient(circle at 42% 40%, color-mix(in srgb, currentColor 60%, #1a0508) 0%, color-mix(in srgb, currentColor 92%, #000) 68%, color-mix(in srgb, currentColor 96%, #000) 100%);
