@@ -141,51 +141,61 @@
   .charts-row{ display:none; }
 
   /* ===== Bolha (bubble) de rentabilidade =====
-     Reconstruída pra parecer de verdade uma esfera de vidro/gel brilhante,
-     igual à da imagem de referência: cor bem saturada no corpo da bolha,
-     glow forte por fora, e DOIS destaques de luz sobrepostos via
-     pseudo-elementos (::before = brilho grande e suave; ::after = ponto de
-     brilho pequeno e nítido, o "reflexo" de vidro) — um único
-     radial-gradient no fundo não é suficiente pra dar esse efeito 3D.
+     No CELULAR mantemos simples: uma elipse "chapada" com um gradiente
+     leve de cima pra baixo (mais clara em cima, mais escura embaixo) e um
+     glow externo — sem os pseudo-elementos de brilho (aquilo só compensa
+     em tamanhos maiores; pequeno, no celular, mais atrapalhava do que
+     ajudava). No DESKTOP (media query lá embaixo) ela vira um círculo com
+     o efeito completo de esfera de vidro (dois brilhos sobrepostos).
      A cor de tudo vem de `currentColor`, definida pelas classes .pos
      (verde) / .neg (vermelho) mais abaixo — então basta trocar a classe
-     no JS pra toda a bolha (fundo, glow e borda) mudar de cor junto. */
+     no JS pra toda a bolha mudar de cor de uma vez, nos dois formatos. */
   .result-pill.bubble{
     position:relative; isolation:isolate; overflow:visible;
-    width:120px; height:120px; border-radius:50%;
+    width:150px; height:104px; border-radius:50%;
     flex-direction:column; justify-content:center; align-items:center; gap:1px;
-    padding:0; font-size:19px; font-weight:700; border:none;
-    background:
-      radial-gradient(circle at 50% 108%, color-mix(in srgb, currentColor 85%, #000) 0%, transparent 55%),
-      radial-gradient(circle at 42% 40%, color-mix(in srgb, currentColor 60%, #1a0508) 0%, color-mix(in srgb, currentColor 92%, #000) 68%, color-mix(in srgb, currentColor 96%, #000) 100%);
+    padding:0; font-size:18px; font-weight:700; border:none;
+    background: linear-gradient(165deg,
+      color-mix(in srgb, currentColor 82%, #fff 18%) 0%,
+      currentColor 55%,
+      color-mix(in srgb, currentColor 78%, #000 32%) 100%);
     box-shadow:
-      inset 0 -18px 26px rgba(0,0,0,.55),
-      inset 0 10px 18px rgba(255,255,255,.12),
-      0 10px 26px rgba(0,0,0,.45),
-      0 0 46px -4px currentColor,
-      0 0 90px -18px currentColor;
+      0 10px 22px -6px rgba(0,0,0,.45),
+      0 0 34px -6px currentColor;
     animation: bubbleFloat 4.5s ease-in-out infinite, pillPulse 2.6s ease-in-out infinite;
   }
-  /* Brilho grande e suave, canto superior-esquerdo */
-  .result-pill.bubble::before{
-    content:''; position:absolute; top:9%; left:13%; width:56%; height:46%; border-radius:50%;
-    background: radial-gradient(circle at 38% 32%, rgba(255,255,255,.8), rgba(255,255,255,0) 72%);
-    filter: blur(1.5px); pointer-events:none;
-  }
-  /* Ponto de brilho pequeno e nítido — o "reflexo" de vidro */
-  .result-pill.bubble::after{
-    content:''; position:absolute; top:15%; left:26%; width:13%; height:9%; border-radius:50%;
-    background: rgba(255,255,255,.92); filter: blur(.3px); pointer-events:none;
-  }
-  .result-pill.bubble > *{ position:relative; z-index:1; } /* texto/ícone acima dos brilhos */
-  .result-pill.bubble .icn-arrow{ font-size:24px; }
+  .result-pill.bubble::before, .result-pill.bubble::after{ content:none; } /* só entram no desktop */
+  .result-pill.bubble > *{ position:relative; z-index:1; } /* texto/ícone acima dos brilhos (quando existirem) */
+  .result-pill.bubble .icn-arrow{ font-size:22px; }
   @keyframes bubbleFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
   @media (min-width:720px){
     .head-expanded{ max-height:270px; overflow:visible; }
     .total-row{ align-items:center; flex-wrap:nowrap; }
     .bubble-wrap{ order:3; width:auto; margin-top:0; flex:0 0 auto; }
+    /* A partir daqui a elipse simples vira círculo com o efeito completo
+       de esfera de vidro: fundo em duas camadas de radial-gradient
+       (corpo + sombra de contato embaixo) + dois brilhos via
+       ::before/::after (brilho grande e suave + ponto de reflexo nítido). */
     .result-pill.bubble{
       width:150px; height:150px; font-size:22px;
+      background:
+        radial-gradient(circle at 50% 108%, color-mix(in srgb, currentColor 85%, #000) 0%, transparent 55%),
+        radial-gradient(circle at 42% 40%, color-mix(in srgb, currentColor 60%, #1a0508) 0%, color-mix(in srgb, currentColor 92%, #000) 68%, color-mix(in srgb, currentColor 96%, #000) 100%);
+      box-shadow:
+        inset 0 -18px 26px rgba(0,0,0,.55),
+        inset 0 10px 18px rgba(255,255,255,.12),
+        0 10px 26px rgba(0,0,0,.45),
+        0 0 46px -4px currentColor,
+        0 0 90px -18px currentColor;
+    }
+    .result-pill.bubble::before{
+      content:''; position:absolute; top:9%; left:13%; width:56%; height:46%; border-radius:50%;
+      background: radial-gradient(circle at 38% 32%, rgba(255,255,255,.8), rgba(255,255,255,0) 72%);
+      filter: blur(1.5px); pointer-events:none;
+    }
+    .result-pill.bubble::after{
+      content:''; position:absolute; top:15%; left:26%; width:13%; height:9%; border-radius:50%;
+      background: rgba(255,255,255,.92); filter: blur(.3px); pointer-events:none;
     }
     .result-pill.bubble .icn-arrow{ font-size:28px; }
 
@@ -213,12 +223,15 @@
   }
 
   /* ===== Gráfico de barras (evolução do patrimônio, mês a mês) =====
-     Cada <rect> usa uma cor diferente de uma paleta variada (amarelo,
-     vermelho, verde, azul, roxo...) — ver BAR_PALETTE / barColorForIndex()
-     no JS. Pra trocar as cores, basta editar o array BAR_PALETTE. */
+     Padrão comum em app de finanças (Nubank, Revolut etc): barras dos
+     meses anteriores em tom neutro/discreto, e só a barra do MÊS ATUAL
+     ganha destaque (cor cheia + brilho) — isso guia o olho direto pro
+     dado mais importante em vez de competir com um arco-íris de cores.
+     Ver BAR_MESES_ANTERIORES / BAR_MES_ATUAL no JS pra trocar as cores. */
   .bar-rect{ transition: opacity .15s ease; }
-  .bar-rect:hover{ opacity:.8; }
-  .bar-month-label{ font-family:'Space Grotesk',sans-serif; font-size:8px; fill:var(--muted); }
+  .bar-rect:hover{ opacity:.75; }
+  .bar-month-label{ font-family:'Space Grotesk',sans-serif; font-size:8.5px; fill:var(--muted); }
+  .bar-month-label.current{ fill:var(--gold); font-weight:600; }
 
   /* ===== Farol de meta (ao lado do ticker, entre nome e valor) =====
      Bolinha (maior que os outros indicadores da tela, a pedido) que fica
@@ -313,8 +326,21 @@
   .tab-btn .dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; box-shadow: 0 0 6px 1px var(--tc); transition: box-shadow .25s ease; }
   .tab-btn.active{
     color: #0A0E1A;
-    background: linear-gradient(135deg, var(--tc), color-mix(in srgb, var(--tc) 55%, white));
-    box-shadow: 0 3px 14px -2px var(--tc), 0 0 0 1px color-mix(in srgb, var(--tc) 50%, transparent);
+    /* Antes: linear-gradient(135deg, var(--tc), color-mix(...tc 55%, white)))
+       — um gradiente diagonal clareando pra branco, que em cores frias
+       (o azul de Ações, por exemplo) lavava a cor e ficava com cara de
+       "botão de PowerPoint". Agora é uma sombra vertical (de cima pra
+       baixo: um fio de luz > a cor cheia > uma sombra mais escura da
+       própria cor), como um pill físico e brilhante — e um highlight
+       interno (inset) no topo reforça a sensação de volume. */
+    background: linear-gradient(165deg,
+      color-mix(in srgb, var(--tc) 88%, #fff 12%) 0%,
+      var(--tc) 55%,
+      color-mix(in srgb, var(--tc) 76%, #000 32%) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.35),
+      0 3px 14px -2px var(--tc),
+      0 0 0 1px color-mix(in srgb, var(--tc) 50%, transparent);
     transform: scale(1.04);
     animation: tabPop .35s cubic-bezier(.34,1.56,.64,1);
   }
@@ -787,20 +813,26 @@ function calcPositionMetrics(pos){
    FAROL DE META (Ações/FIIs)
    ---------------------------------------------------------
    Usa os dois campos que já existiam por posição:
-     pos.valorTeto      -> valor máximo (R$) que essa posição deveria ter
+     pos.valorTeto      -> PREÇO teto de compra recomendado (R$ por unidade/
+                            ação) — comparado com pos.precoAtual, não com o
+                            valor total da posição.
      pos.pctAporteAlvo  -> % máximo que essa posição deveria representar
                             do total já investido na guia (Ações ou FIIs)
-   Verde  = dentro das duas metas configuradas (ou de quem estiver ativa).
-   Vermelho = estourou o valor teto e/ou o % alvo.
+                            — comparado com pctDoTotalCategoria.
+   Verde  = as duas condições configuradas estão OK (preço dentro do teto
+            E % dentro do alvo). Se só uma delas estiver configurada, só
+            ela é avaliada.
+   Vermelho = preço atual passou do teto e/ou o % da categoria passou do
+              alvo.
    null   = posição sem nenhuma meta configurada (os dois campos em 0) ->
             o farol simplesmente não é desenhado (ver farolHtml).
 ========================================================= */
-function assetFarolStatus(pos, valorAtual, pctDoTotalCategoria){
+function assetFarolStatus(pos, precoAtual, pctDoTotalCategoria){
   const temTeto = (pos.valorTeto||0) > 0;
   const temPctAlvo = (pos.pctAporteAlvo||0) > 0;
   if (!temTeto && !temPctAlvo) return null;
   let dentroDaMeta = true;
-  if (temTeto) dentroDaMeta = dentroDaMeta && (valorAtual <= pos.valorTeto);
+  if (temTeto) dentroDaMeta = dentroDaMeta && (precoAtual <= pos.valorTeto);
   if (temPctAlvo) dentroDaMeta = dentroDaMeta && (pctDoTotalCategoria <= pos.pctAporteAlvo);
   return dentroDaMeta ? 'green' : 'red';
 }
@@ -1037,13 +1069,31 @@ function getDemoMonthlyHistory(currentValue){
   return data;
 }
 
-// Paleta de cores variadas pra cada barra (amarelo, vermelho, verde, azul,
-// roxo, laranja...) — cada mês pega a próxima cor da lista, repetindo em
-// ciclo se houver mais barras do que cores. Pra mudar as cores, basta
-// editar este array (aceita qualquer valor CSS de cor).
-const BAR_PALETTE = ['#FFC53D','#FF5C7A','#2EE6A6','#22D3EE','#8B5CF6','#FB923C','#60A5FA','#F472B6','#A3E635','#FF7A45'];
-function barColorForIndex(i, n){
-  return BAR_PALETTE[i % BAR_PALETTE.length];
+// Cores do gráfico de barras: meses anteriores ficam num tom neutro
+// (discreto, não compete com o resto da tela) e só o MÊS ATUAL (última
+// barra) ganha um degradê dourado + brilho — é o padrão que a maioria dos
+// apps de finanças usa pra destacar o dado mais recente sem virar
+// arco-íris. Pra mudar as cores, edite estas constantes.
+const BAR_COR_ANTERIOR = '#232B47';
+const BAR_COR_ATUAL_TOPO = '#FFE39A';
+const BAR_COR_ATUAL_MEIO = '#FFC53D';
+const BAR_COR_ATUAL_BASE = '#C9860F';
+
+// Gera o <defs> com o degradê vertical usado na barra do mês atual.
+// `gradId` precisa ser único por <svg> (o header e o modal de detalhe têm
+// dois <svg> na tela ao mesmo tempo, então cada um usa um id diferente).
+function barGradientDefsHtml(gradId){
+  return `<defs>
+    <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${BAR_COR_ATUAL_TOPO}"/>
+      <stop offset="48%" stop-color="${BAR_COR_ATUAL_MEIO}"/>
+      <stop offset="100%" stop-color="${BAR_COR_ATUAL_BASE}"/>
+    </linearGradient>
+  </defs>`;
+}
+// Última barra (mês atual) usa o degradê dourado; as demais, o tom neutro.
+function barFillFor(i, n, gradId){
+  return i === n-1 ? `url(#${gradId})` : BAR_COR_ANTERIOR;
 }
 
 function renderPatrimonioBars(currentValue){
@@ -1059,27 +1109,31 @@ function renderPatrimonioBars(currentValue){
   if (lbl) lbl.innerHTML = 'Evolução do patrimônio' + (isDemo ? ' <span style="opacity:.6; text-transform:none; letter-spacing:0;">(exemplo)</span>' : '') + ' <span class="material-symbols-outlined">open_in_full</span>';
   if (hist.length < 2){ svg.innerHTML = ''; return; }
 
-  const W=300, H=100, pad=5, labelH=14; // labelH reserva espaço pro mês embaixo da barra
+  // pad/gap menores que antes = barras mais largas, usando melhor o
+  // espaço disponível (pedido explícito: "achei eles compactos").
+  const W=300, H=100, pad=3, labelH=14; // labelH reserva espaço pro mês embaixo da barra
   const plotH = H - pad - labelH;
   const maxV = Math.max(...hist.map(h=>h.valor)) || 1;
   const n = hist.length;
-  const gap = 6;
+  const gap = 4;
   const barW = (W - pad*2 - gap*(n-1)) / n;
+  const gradId = 'barAccentGradHead';
 
   const bars = hist.map((h,i)=>{
+    const isLast = i === n-1;
     const x = pad + i*(barW+gap);
     const barH = Math.max(3, (h.valor/maxV) * plotH);
     const y = plotH - barH + pad*0.4;
-    const color = barColorForIndex(i, n);
+    const fill = barFillFor(i, n, gradId);
     const mes = MONTH_LABELS_PT[new Date(h.data+'T00:00:00').getMonth()];
     return `
-      <rect class="bar-rect" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="2.2" fill="${color}" style="filter:drop-shadow(0 0 5px ${color}99)" ${isDemo?'opacity="0.85"':''}>
+      <rect class="bar-rect" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="3" fill="${fill}" ${isLast?'style="filter:drop-shadow(0 0 6px rgba(255,197,61,.6))"':''} ${isDemo?'opacity="0.85"':''}>
         <title>${mes}: ${fmtBRLShort(h.valor)}</title>
       </rect>
-      <text class="bar-month-label" x="${(x+barW/2).toFixed(1)}" y="${H-2}" text-anchor="middle">${mes}</text>
+      <text class="bar-month-label${isLast?' current':''}" x="${(x+barW/2).toFixed(1)}" y="${H-2}" text-anchor="middle">${mes}</text>
     `;
   }).join('');
-  svg.innerHTML = bars;
+  svg.innerHTML = barGradientDefsHtml(gradId) + bars;
 }
 
 // Modal de detalhe (duplo clique na barra): mostra as barras maiores + uma
@@ -1101,17 +1155,19 @@ function openPatrimonioBarModal(){
   const n = hist.length;
   const gap = 14;
   const barW = (W - pad*2 - gap*(n-1)) / n;
+  const gradId = 'barAccentGradModal';
   const barsHtml = hist.map((h,i)=>{
+    const isLast = i === n-1;
     const x = pad + i*(barW+gap);
     const barH = Math.max(2, (h.valor/maxV) * plotH);
     const y = plotH - barH + pad*0.4;
-    const color = barColorForIndex(i, n);
+    const fill = barFillFor(i, n, gradId);
     const mes = MONTH_LABELS_PT[new Date(h.data+'T00:00:00').getMonth()];
     return `
-      <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="3" fill="${color}" style="filter:drop-shadow(0 0 8px ${color}99)" ${isDemo?'opacity="0.85"':''}>
+      <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="4" fill="${fill}" ${isLast?'style="filter:drop-shadow(0 0 10px rgba(255,197,61,.6))"':''} ${isDemo?'opacity="0.85"':''}>
         <title>${mes}: ${fmtBRL(h.valor)}</title>
       </rect>
-      <text x="${(x+barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" style="font-size:11px; fill:var(--muted);">${mes}</text>
+      <text x="${(x+barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" style="font-size:11px; fill:${isLast?'var(--gold)':'var(--muted)'};">${mes}</text>
     `;
   }).join('');
 
@@ -1138,7 +1194,7 @@ function openPatrimonioBarModal(){
       <div class="dash-summary-card"><span class="lbl">Valor atual</span><span class="val money">${fmtBRLShort(last.valor)}</span></div>
       <div class="dash-summary-card"><span class="lbl">Variação</span><span class="val money" style="color:${variacaoAbs>=0?'#2EE6A6':'#FF5C7A'}">${variacaoAbs>=0?'+':''}${fmtBRLShort(variacaoAbs)} · ${fmtPct(variacaoPct)}</span></div>
     </div>
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:260px; display:block; margin:10px 0 18px;">${barsHtml}</svg>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:260px; display:block; margin:10px 0 18px;">${barGradientDefsHtml(gradId)}${barsHtml}</svg>
     <div class="dash-desktop-panel" style="display:block; margin-top:0;">
       <table class="dash-table">
         <thead><tr><th>Mês</th><th>Valor</th><th>Variação no mês</th></tr></thead>
@@ -1432,10 +1488,11 @@ function renderMarketPanel(cat){
     const hist = STATE.data[cat.id].history.filter(h=>h.positionId===pos.id).sort((a,b)=>b.data.localeCompare(a.data));
     const pctDoTotalCategoria = t.atual>0 ? (m.atual/t.atual*100) : 0;
     // Farol só faz sentido pra Ações/FIIs, que são as guias com % de aporte
-    // alvo e valor teto digitáveis (ver mostraAlvoPosicao acima). O % que
-    // aparece do lado do farol é o mesmo pctDoTotalCategoria usado pra
-    // decidir a cor do farol (assetFarolStatus).
-    const farol = mostraAlvoPosicao ? farolHtml(assetFarolStatus(pos, m.atual, pctDoTotalCategoria), pctDoTotalCategoria) : '';
+    // alvo e preço teto digitáveis (ver mostraAlvoPosicao acima). Compara
+    // o PREÇO atual (pos.precoAtual) com o teto — não o valor total da
+    // posição — e o % que ela representa do total da guia com o alvo. O
+    // % que aparece do lado do farol é esse mesmo pctDoTotalCategoria.
+    const farol = mostraAlvoPosicao ? farolHtml(assetFarolStatus(pos, pos.precoAtual, pctDoTotalCategoria), pctDoTotalCategoria) : '';
     html += `
       <div class="pos-row">
         <div class="pos-head" onclick="toggleRow('${pos.id}')">
@@ -1456,7 +1513,7 @@ function renderMarketPanel(cat){
           </div>
           ${mostraAlvoPosicao ? `
           <div class="field-row" style="margin:10px 0;">
-            <div class="field-group"><label class="field">Valor teto</label><input type="number" step="0.01" id="teto-${pos.id}" value="${pos.valorTeto||0}"></div>
+            <div class="field-group"><label class="field">Preço teto (compra)</label><input type="number" step="0.01" id="teto-${pos.id}" value="${pos.valorTeto||0}"></div>
             <div class="field-group"><label class="field">% aporte alvo</label><input type="number" step="0.01" id="pctaporte-${pos.id}" value="${pos.pctAporteAlvo||0}"></div>
           </div>
           <button class="btn ghost btn-sm" style="width:100%; margin-bottom:8px;" onclick="updatePosAlvo('${cat.id}','${pos.id}')">Salvar teto / %</button>
