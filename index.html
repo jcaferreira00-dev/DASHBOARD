@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0F1E2B">
+<meta name="theme-color" content="#150F1A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Carteira">
@@ -19,8 +19,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <style>
   :root{
-    --bg: #0A0E1A;
-    --bg-deep: #060811;
+    --bg: #150F1A;
+    --bg-deep: #0C0810;
     --surface: rgba(255,255,255,.05);
     --surface-raised: rgba(255,255,255,.09);
     --rule: rgba(255,255,255,.10);
@@ -40,13 +40,19 @@
     *, *::before, *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
   }
   .aurora{ position:fixed; inset:0; z-index:-1; overflow:hidden; background:var(--bg-deep); }
+  /* Antes os "borrões" de fundo eram dominados por violeta + ciano (dois
+     tons frios), o que deixava o app com uma cara de "tech azulado".
+     Agora o ouro e o coral (as cores que já usamos nos botões e no
+     wordmark) ganham mais peso e área — o violeta continua entrando só
+     como um terceiro tom discreto pra dar profundidade, e o ciano saiu
+     do fundo (continua existindo só como cor de categoria/gráfico). */
   .aurora::before, .aurora::after{
     content:''; position:absolute; width:130vmax; height:130vmax; left:50%; top:50%;
     background:
-      radial-gradient(circle at 20% 25%, rgba(139,92,246,.32), transparent 40%),
-      radial-gradient(circle at 75% 20%, rgba(34,211,238,.26), transparent 38%),
-      radial-gradient(circle at 30% 80%, rgba(46,230,166,.22), transparent 40%),
-      radial-gradient(circle at 80% 75%, rgba(255,92,122,.24), transparent 38%);
+      radial-gradient(circle at 20% 25%, rgba(255,197,61,.20), transparent 42%),
+      radial-gradient(circle at 78% 22%, rgba(255,92,122,.22), transparent 40%),
+      radial-gradient(circle at 30% 80%, rgba(139,92,246,.14), transparent 42%),
+      radial-gradient(circle at 82% 78%, rgba(255,138,69,.18), transparent 40%);
     transform: translate(-50%,-50%);
     animation: auroraDrift 26s ease-in-out infinite alternate;
     filter: blur(4px);
@@ -88,7 +94,7 @@
   /* ===== Header ===== */
   header.top{
     position: sticky; top:0; z-index: 20;
-    background: rgba(8,10,20,.62);
+    background: rgba(16,11,18,.62);
     backdrop-filter: blur(18px) saturate(1.4);
     -webkit-backdrop-filter: blur(18px) saturate(1.4);
     border-bottom: 1px solid var(--rule);
@@ -138,63 +144,46 @@
   .bubble-wrap{ order:4; flex:0 0 auto; }
   .charts-row{ display:none; }
 
-  /* ===== Bolha (bubble) de rentabilidade =====
-     No CELULAR é uma elipse pequena e simples (só um gradiente leve +
-     glow) pra caber tranquilamente na altura do cabeçalho. No DESKTOP
-     (media query lá embaixo) ela vira um círculo grande com o efeito
-     completo de esfera de vidro (dois brilhos sobrepostos).
-     A cor de tudo vem de `currentColor`, definida pelas classes .pos
-     (verde) / .neg (vermelho) mais abaixo — então basta trocar a classe
-     no JS pra toda a bolha mudar de cor de uma vez, nos dois formatos. */
+  /* ===== "Bolha" de rentabilidade — agora um cartão retangular =====
+     Depois de testar elipse/esfera e não ficar satisfatório (bordas
+     tortas em telas pequenas), troquei pela mesma linguagem visual dos
+     outros cartões do app (Aportado / Valor atual / Resultado): fundo
+     translúcido (var(--surface)) + borda fina na cor do resultado + uma
+     tarja colorida no topo — só que aqui redonda nos 4 cantos. Isso evita
+     qualquer "interferência de borda" estranha e ainda fica claramente
+     ligado ao resto da interface (não é mais um elemento isolado). A cor
+     de tudo vem de `currentColor`, definida pelas classes .pos (verde) /
+     .neg (vermelho) mais abaixo — então basta trocar a classe no JS pra
+     todo o cartão mudar de cor de uma vez, nos dois tamanhos. */
   .result-pill.bubble{
-    position:relative; isolation:isolate; overflow:visible;
-    width:78px; height:46px; border-radius:50%;
+    position:relative; isolation:isolate; overflow:hidden;
+    width:86px; height:50px; border-radius: var(--radius-sm);
     flex-direction:column; justify-content:center; align-items:center; gap:0;
-    padding:0; font-size:12.5px; font-weight:700; border:none;
-    background: linear-gradient(165deg,
-      color-mix(in srgb, currentColor 82%, #fff 18%) 0%,
-      currentColor 55%,
-      color-mix(in srgb, currentColor 78%, #000 32%) 100%);
-    box-shadow:
-      0 6px 14px -5px rgba(0,0,0,.45),
-      0 0 18px -4px currentColor;
+    padding:0; font-size:12.5px; font-weight:700;
+    background: var(--surface);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1.5px solid color-mix(in srgb, currentColor 45%, var(--rule));
+    box-shadow: 0 4px 14px -6px rgba(0,0,0,.5), 0 0 20px -8px currentColor;
     animation: pillPulse 2.6s ease-in-out infinite;
   }
-  .result-pill.bubble::before, .result-pill.bubble::after{ content:none; } /* só entram no desktop */
-  .result-pill.bubble > *{ position:relative; z-index:1; } /* texto/ícone acima dos brilhos (quando existirem) */
+  /* Tarja colorida no topo, igual à dos cartões Aportado/Valor atual/
+     Resultado (.card::before) — é o que amarra visualmente o cartão da
+     rentabilidade ao resto da tela. */
+  .result-pill.bubble::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background: currentColor; opacity:.85;
+  }
+  .result-pill.bubble > *{ position:relative; z-index:1; }
   .result-pill.bubble .icn-arrow{ font-size:14px; }
-  @keyframes bubbleFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
   @media (min-width:720px){
     .head-expanded{ max-height:270px; overflow:visible; }
     .total-row{ align-items:center; flex-wrap:nowrap; }
     .bubble-wrap{ order:3; width:auto; margin-top:0; flex:0 0 auto; }
-    /* A partir daqui a elipse simples vira círculo com o efeito completo
-       de esfera de vidro: fundo em duas camadas de radial-gradient
-       (corpo + sombra de contato embaixo) + dois brilhos via
-       ::before/::after (brilho grande e suave + ponto de reflexo nítido). */
     .result-pill.bubble{
-      width:150px; height:150px; font-size:22px;
-      animation: bubbleFloat 4.5s ease-in-out infinite, pillPulse 2.6s ease-in-out infinite;
-      background:
-        radial-gradient(circle at 50% 108%, color-mix(in srgb, currentColor 85%, #000) 0%, transparent 55%),
-        radial-gradient(circle at 42% 40%, color-mix(in srgb, currentColor 60%, #1a0508) 0%, color-mix(in srgb, currentColor 92%, #000) 68%, color-mix(in srgb, currentColor 96%, #000) 100%);
-      box-shadow:
-        inset 0 -18px 26px rgba(0,0,0,.55),
-        inset 0 10px 18px rgba(255,255,255,.12),
-        0 10px 26px rgba(0,0,0,.45),
-        0 0 46px -4px currentColor,
-        0 0 90px -18px currentColor;
+      width:148px; height:92px; font-size:19px;
     }
-    .result-pill.bubble::before{
-      content:''; position:absolute; top:9%; left:13%; width:56%; height:46%; border-radius:50%;
-      background: radial-gradient(circle at 38% 32%, rgba(255,255,255,.8), rgba(255,255,255,0) 72%);
-      filter: blur(1.5px); pointer-events:none;
-    }
-    .result-pill.bubble::after{
-      content:''; position:absolute; top:15%; left:26%; width:13%; height:9%; border-radius:50%;
-      background: rgba(255,255,255,.92); filter: blur(.3px); pointer-events:none;
-    }
-    .result-pill.bubble .icn-arrow{ font-size:28px; }
+    .result-pill.bubble::before{ height:4px; }
+    .result-pill.bubble .icn-arrow{ font-size:24px; }
 
     /* ===== Faixa com os dois gráficos (barras + linha) =====
        `.charts-row` é o container flex que fica entre o total (à esquerda)
