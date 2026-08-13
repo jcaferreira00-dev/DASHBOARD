@@ -19,8 +19,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <style>
   :root{
-    --bg: #150F1A;
-    --bg-deep: #0C0810;
+    --bg: #0A0A0A;
+    --bg-deep: #000000;
     --surface: rgba(255,255,255,.05);
     --surface-raised: rgba(255,255,255,.09);
     --rule: rgba(255,255,255,.10);
@@ -49,10 +49,10 @@
   .aurora::before, .aurora::after{
     content:''; position:absolute; width:130vmax; height:130vmax; left:50%; top:50%;
     background:
-      radial-gradient(circle at 20% 25%, rgba(255,197,61,.20), transparent 42%),
-      radial-gradient(circle at 78% 22%, rgba(255,92,122,.22), transparent 40%),
-      radial-gradient(circle at 30% 80%, rgba(139,92,246,.14), transparent 42%),
-      radial-gradient(circle at 82% 78%, rgba(255,138,69,.18), transparent 40%);
+      radial-gradient(circle at 20% 25%, rgba(255,197,61,.14), transparent 42%),
+      radial-gradient(circle at 78% 22%, rgba(139,92,246,.12), transparent 40%),
+      radial-gradient(circle at 30% 80%, rgba(139,92,246,.10), transparent 42%),
+      radial-gradient(circle at 82% 78%, rgba(255,197,61,.10), transparent 40%);
     transform: translate(-50%,-50%);
     animation: auroraDrift 26s ease-in-out infinite alternate;
     filter: blur(4px);
@@ -65,6 +65,12 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
+  /* O header (.head-expanded) encolhe de altura via max-height quando
+     colapsa no scroll. Sem isto, o navegador tenta "compensar" essa
+     mudança de altura acima da viewport reajustando sozinho o scrollY
+     (scroll anchoring) — é isso que fazia a rolagem parecer travada,
+     só "destravando" depois de vários giros do scroll do mouse. */
+  html{ overflow-anchor: none; }
   body{
     background: transparent;
     color: var(--cream);
@@ -192,8 +198,29 @@
     .head-expanded{ max-height:270px; overflow:visible; }
     .total-row{ align-items:center; flex-wrap:nowrap; }
     .bubble-wrap{ order:3; width:auto; margin:0 4px 0 0; flex:0 0 auto; }
-    .result-pill.bubble{ height:72px; padding:0 28px; font-size:20px; }
-    .result-pill.bubble .icn-arrow{ font-size:22px; }
+    /* No desktop a "pill" horizontal virava uma elipse esticada (largura
+       bem maior que a altura). Agora é um círculo de verdade — largura
+       igual à altura, conteúdo empilhado (ícone em cima, % embaixo) — e
+       ganha um brilho de vidro (::after) pra parecer uma esfera 3D, não
+       só um círculo chapado. */
+    .result-pill.bubble{
+      width:88px; height:88px; padding:0; font-size:15.5px;
+      border-radius:50%; flex-direction:column; justify-content:center; gap:1px;
+      box-shadow:
+        inset 0 -14px 18px -8px rgba(0,0,0,.45),
+        inset 0 10px 16px -6px rgba(255,255,255,.4),
+        0 8px 20px -6px rgba(0,0,0,.55);
+    }
+    .result-pill.bubble .icn-arrow{ font-size:19px; }
+    /* Brilho de vidro: um reflexo elíptico no canto superior-esquerdo,
+       típico de esfera de vidro/gel — fica por cima de tudo (z-index 2)
+       e não intercepta clique (pointer-events:none). */
+    .result-pill.bubble::after{
+      content:''; position:absolute; inset:0; z-index:2; pointer-events:none;
+      border-radius:50%;
+      background: radial-gradient(ellipse 60% 42% at 32% 24%, rgba(255,255,255,.65), rgba(255,255,255,.12) 45%, transparent 70%);
+      mix-blend-mode:screen;
+    }
 
     /* ===== Faixa com os dois gráficos (barras + linha) =====
        `.charts-row` é o container flex que fica entre o total (à esquerda)
@@ -1090,31 +1117,24 @@ function getDemoMonthlyHistory(currentValue){
   return data;
 }
 
-// Cores do gráfico de barras: meses anteriores ficam num tom neutro
-// (discreto, não compete com o resto da tela) e só o MÊS ATUAL (última
-// barra) ganha um degradê dourado + brilho — é o padrão que a maioria dos
-// apps de finanças usa pra destacar o dado mais recente sem virar
-// arco-íris. Pra mudar as cores, edite estas constantes.
-const BAR_COR_ANTERIOR = '#232B47';
-const BAR_COR_ATUAL_TOPO = '#FFE39A';
-const BAR_COR_ATUAL_MEIO = '#FFC53D';
-const BAR_COR_ATUAL_BASE = '#C9860F';
+// Cores do gráfico de barras: cada mês é comparado com o mês anterior —
+// subiu (ou empatou) fica verde, caiu fica vermelho. Mesmas cores de
+// positivo/negativo usadas no resto do app (.result-pill.pos/.neg), pra
+// manter o padrão visual consistente. O primeiro mês da série não tem
+// anterior pra comparar, então fica num tom neutro discreto.
+const BAR_COR_NEUTRA = '#3A4160';
+const BAR_COR_ALTA = '#2EE6A6';
+const BAR_COR_BAIXA = '#FF5C7A';
 
-// Gera o <defs> com o degradê vertical usado na barra do mês atual.
-// `gradId` precisa ser único por <svg> (o header e o modal de detalhe têm
-// dois <svg> na tela ao mesmo tempo, então cada um usa um id diferente).
-function barGradientDefsHtml(gradId){
-  return `<defs>
-    <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${BAR_COR_ATUAL_TOPO}"/>
-      <stop offset="48%" stop-color="${BAR_COR_ATUAL_MEIO}"/>
-      <stop offset="100%" stop-color="${BAR_COR_ATUAL_BASE}"/>
-    </linearGradient>
-  </defs>`;
-}
-// Última barra (mês atual) usa o degradê dourado; as demais, o tom neutro.
-function barFillFor(i, n, gradId){
-  return i === n-1 ? `url(#${gradId})` : BAR_COR_ANTERIOR;
+// Mantido só por compatibilidade de assinatura (não usa mais degradê por
+// <defs> — cada barra agora é uma cor sólida conforme a variação do mês).
+function barGradientDefsHtml(){ return ''; }
+
+// Cor da barra do mês `i`: compara com o mês anterior (i-1). Sem mês
+// anterior (primeira barra da série), usa o tom neutro.
+function barFillFor(hist, i){
+  if (i === 0) return BAR_COR_NEUTRA;
+  return hist[i].valor >= hist[i-1].valor ? BAR_COR_ALTA : BAR_COR_BAIXA;
 }
 
 function renderPatrimonioBars(currentValue){
@@ -1137,24 +1157,26 @@ function renderPatrimonioBars(currentValue){
   const maxV = Math.max(...hist.map(h=>h.valor)) || 1;
   const n = hist.length;
   const gap = 4;
-  const barW = (W - pad*2 - gap*(n-1)) / n;
-  const gradId = 'barAccentGradHead';
+  const slotW = (W - pad*2 - gap*(n-1)) / n;
+  const barW = slotW * 0.56; // barras mais finas, centralizadas no slot
+  const barOffset = (slotW - barW) / 2;
 
   const bars = hist.map((h,i)=>{
     const isLast = i === n-1;
-    const x = pad + i*(barW+gap);
+    const x = pad + i*(slotW+gap) + barOffset;
     const barH = Math.max(3, (h.valor/maxV) * plotH);
     const y = plotH - barH + pad*0.4;
-    const fill = barFillFor(i, n, gradId);
+    const fill = barFillFor(hist, i);
+    const glow = fill===BAR_COR_ALTA ? 'rgba(46,230,166,.6)' : fill===BAR_COR_BAIXA ? 'rgba(255,92,122,.6)' : 'rgba(255,255,255,.25)';
     const mes = MONTH_LABELS_PT[new Date(h.data+'T00:00:00').getMonth()];
     return `
-      <rect class="bar-rect" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="3" fill="${fill}" ${isLast?'style="filter:drop-shadow(0 0 6px rgba(255,197,61,.6))"':''} ${isDemo?'opacity="0.85"':''}>
+      <rect class="bar-rect" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="2.5" fill="${fill}" ${isLast?`style="filter:drop-shadow(0 0 6px ${glow})"`:''} ${isDemo?'opacity="0.85"':''}>
         <title>${mes}: ${fmtBRLShort(h.valor)}</title>
       </rect>
       <text class="bar-month-label${isLast?' current':''}" x="${(x+barW/2).toFixed(1)}" y="${H-2}" text-anchor="middle">${mes}</text>
     `;
   }).join('');
-  svg.innerHTML = barGradientDefsHtml(gradId) + bars;
+  svg.innerHTML = bars;
 }
 
 // Modal de detalhe (duplo clique na barra): mostra as barras maiores + uma
@@ -1175,17 +1197,19 @@ function openPatrimonioBarModal(){
   const maxV = Math.max(...hist.map(h=>h.valor)) || 1;
   const n = hist.length;
   const gap = 14;
-  const barW = (W - pad*2 - gap*(n-1)) / n;
-  const gradId = 'barAccentGradModal';
+  const slotW = (W - pad*2 - gap*(n-1)) / n;
+  const barW = slotW * 0.56; // barras mais finas, centralizadas no slot
+  const barOffset = (slotW - barW) / 2;
   const barsHtml = hist.map((h,i)=>{
     const isLast = i === n-1;
-    const x = pad + i*(barW+gap);
+    const x = pad + i*(slotW+gap) + barOffset;
     const barH = Math.max(2, (h.valor/maxV) * plotH);
     const y = plotH - barH + pad*0.4;
-    const fill = barFillFor(i, n, gradId);
+    const fill = barFillFor(hist, i);
+    const glow = fill===BAR_COR_ALTA ? 'rgba(46,230,166,.6)' : fill===BAR_COR_BAIXA ? 'rgba(255,92,122,.6)' : 'rgba(255,255,255,.25)';
     const mes = MONTH_LABELS_PT[new Date(h.data+'T00:00:00').getMonth()];
     return `
-      <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="4" fill="${fill}" ${isLast?'style="filter:drop-shadow(0 0 10px rgba(255,197,61,.6))"':''} ${isDemo?'opacity="0.85"':''}>
+      <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="3" fill="${fill}" ${isLast?`style="filter:drop-shadow(0 0 10px ${glow})"`:''} ${isDemo?'opacity="0.85"':''}>
         <title>${mes}: ${fmtBRL(h.valor)}</title>
       </rect>
       <text x="${(x+barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" style="font-size:11px; fill:${isLast?'var(--gold)':'var(--muted)'};">${mes}</text>
@@ -1215,7 +1239,7 @@ function openPatrimonioBarModal(){
       <div class="dash-summary-card"><span class="lbl">Valor atual</span><span class="val money">${fmtBRLShort(last.valor)}</span></div>
       <div class="dash-summary-card"><span class="lbl">Variação</span><span class="val money" style="color:${variacaoAbs>=0?'#2EE6A6':'#FF5C7A'}">${variacaoAbs>=0?'+':''}${fmtBRLShort(variacaoAbs)} · ${fmtPct(variacaoPct)}</span></div>
     </div>
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:260px; display:block; margin:10px 0 18px;">${barGradientDefsHtml(gradId)}${barsHtml}</svg>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:260px; display:block; margin:10px 0 18px;">${barsHtml}</svg>
     <div class="dash-desktop-panel" style="display:block; margin-top:0;">
       <table class="dash-table">
         <thead><tr><th>Mês</th><th>Valor</th><th>Variação no mês</th></tr></thead>
