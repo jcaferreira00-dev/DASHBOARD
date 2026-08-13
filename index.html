@@ -126,68 +126,60 @@
   .icon-btn.synced{ color:#2EE6A6; border-color: rgba(46,230,166,.4); }
 
   .head-expanded{
-    overflow:hidden; max-height:150px; opacity:1; margin-top:14px;
+    /* max-height maior que antes: agora o pill de rentabilidade quebra
+       pra linha própria e centralizada no celular (ver .bubble-wrap
+       abaixo), o que usa mais altura — sem esse aumento, o cabeçalho
+       cortava o pill pela metade ao expandir. */
+    overflow:hidden; max-height:220px; opacity:1; margin-top:14px;
     transition: max-height .28s ease, opacity .2s ease, margin-top .28s ease;
   }
   header.top.collapsed .head-expanded{ max-height:0; opacity:0; margin-top:0; }
 
   .total-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
-  /* No celular a bolha fica PEQUENA e à direita, na mesma linha do valor
-     total — igual era antes de eu tentar deixá-la grande e centralizada
-     embaixo (isso vazava pra fora do cabeçalho, que tem altura limitada
-     no celular via .head-expanded{ max-height:150px }, e cortava a bolha
-     pela metade). `.bubble-wrap` não força mais largura 100%/quebra de
-     linha — ele só é o último item do `.total-row`, que já tem
-     justify-content:space-between, então cai naturalmente à direita.
+  /* No celular o pill de rentabilidade fica em uma linha própria,
+     centralizada, logo ABAIXO da linha dos 4 botões do cabeçalho (olho,
+     rosca, sliders, nuvem) e ACIMA do valor total — não lá embaixo, depois
+     de aportado/resultado/composição. `order:-1` faz ela vir antes do
+     resto dentro do `.total-row` (que tem flex-wrap:wrap); `width:100%`
+     força a quebra de linha (ela sozinha ocupa a linha toda); e
+     `justify-content:center` centraliza nessa linha própria.
      Os dois gráficos (barras de patrimônio + linha de rentabilidade) só
-     aparecem a partir do breakpoint desktop (ver media query abaixo). */
-  .bubble-wrap{ order:4; flex:0 0 auto; align-self:center; }
+     aparecem a partir do breakpoint desktop (ver media query abaixo).
+     overflow:visible + margem garantem que o glow do pillPulse (a sombra
+     pulsando) não seja cortado pela borda do cabeçalho. */
+  .bubble-wrap{ order:-1; width:100%; display:flex; justify-content:center; margin-bottom:14px; overflow:visible; }
   .charts-row{ display:none; }
 
-  /* ===== "Bolha" de rentabilidade — agora um cartão retangular =====
-     Depois de testar elipse/esfera e não ficar satisfatório (bordas
-     tortas em telas pequenas), troquei pela mesma linguagem visual dos
-     outros cartões do app (Aportado / Valor atual / Resultado): fundo
-     translúcido (var(--surface)) + borda fina na cor do resultado + uma
-     tarja colorida no topo — só que aqui redonda nos 4 cantos. Isso evita
-     qualquer "interferência de borda" estranha e ainda fica claramente
-     ligado ao resto da interface (não é mais um elemento isolado). A cor
-     de tudo vem de `currentColor`, definida pelas classes .pos (verde) /
-     .neg (vermelho) mais abaixo — então basta trocar a classe no JS pra
-     todo o cartão mudar de cor de uma vez, nos dois tamanhos. */
+  /* ===== Cartão de rentabilidade (pill arredondado + copo enchendo) =====
+     A FORMA e a COR continuam vindo de `.result-pill.pos`/`.neg` (borda
+     fina, fundo translúcido, glow pulsando) — `.bubble` só ajusta
+     tamanho. A novidade é a camada `.bubble-liquid` (ver mais abaixo):
+     um "nível de água" que sobe/desce por dentro do pill conforme o |%|
+     de rentabilidade, sem nunca sair da forma arredondada.
+     IMPORTANTE sobre bordas cortadas: `overflow:hidden` aqui serve só pra
+     recortar o líquido no formato do pill — isso NÃO corta o box-shadow
+     (o glow do pillPulse), porque overflow de um elemento nunca recorta
+     a própria sombra dele, só o conteúdo interno. Quem cortava a sombra
+     antes era o `.bubble-wrap`/`.head-expanded` ao redor, não o pill em
+     si — por isso a margem de segurança fica no wrapper (linha acima),
+     não aqui. */
   .result-pill.bubble{
     position:relative; isolation:isolate; overflow:hidden;
-    width:86px; height:50px; border-radius: var(--radius-sm);
-    flex-direction:column; justify-content:center; align-items:center; gap:0;
-    padding:0; font-size:12.5px; font-weight:700;
-    background: var(--surface);
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border: 1.5px solid color-mix(in srgb, currentColor 45%, var(--rule));
-    box-shadow: 0 4px 14px -6px rgba(0,0,0,.5), 0 0 20px -8px currentColor;
-    animation: pillPulse 2.6s ease-in-out infinite;
+    height:46px; padding:0 20px; font-size:15px; gap:6px;
   }
-  /* Tarja colorida no topo, igual à dos cartões Aportado/Valor atual/
-     Resultado (.card::before) — é o que amarra visualmente o cartão da
-     rentabilidade ao resto da tela. */
-  .result-pill.bubble::before{
-    content:''; position:absolute; top:0; left:0; right:0; height:3px;
-    background: currentColor; opacity:.85; z-index:2;
-  }
-  /* ===== Efeito "copo enchendo/esvaziando" =====
-     `.bubble-liquid` é uma camada dentro do cartão cuja ALTURA (definida
-     no JS, via bubbleFillPct()) representa o quão "cheio" o resultado
-     está — quanto maior o |%|, mais alto o líquido sobe. Ela sobe/desce
-     com uma transição suave sempre que o % muda (sensação de
-     enchendo/esvaziando, não um salto seco). O ::before dela é só uma
-     textura de ondinha repetindo e andando pro lado, pra não ficar uma
-     superfície reta/estática. Fica ATRÁS do ícone/número (z-index 0 vs 1). */
+  .result-pill.bubble .icn-arrow{ font-size:17px; }
+  /* Camada de líquido: a altura vem do JS (bubbleFillPct), com transição
+     suave pra dar a sensação de "enchendo/esvaziando" quando o % muda.
+     Fica atrás do ícone/número (z-index 0 vs 1 — ver regras abaixo). */
   .result-pill.bubble > .bubble-liquid{
     position:absolute; left:0; right:0; bottom:0; z-index:0;
     background: linear-gradient(180deg,
-      color-mix(in srgb, currentColor 45%, transparent) 0%,
-      color-mix(in srgb, currentColor 70%, transparent) 100%);
+      color-mix(in srgb, currentColor 42%, transparent) 0%,
+      color-mix(in srgb, currentColor 68%, transparent) 100%);
     transition: height .9s cubic-bezier(.4,0,.2,1);
   }
+  /* Textura de ondinha na superfície do líquido, andando pro lado em loop
+     — evita que a superfície pareça uma linha reta e estática. */
   .result-pill.bubble > .bubble-liquid::before{
     content:''; position:absolute; top:-4px; left:-50%; width:200%; height:8px;
     background: radial-gradient(ellipse at center, currentColor 46%, transparent 52%);
@@ -195,17 +187,13 @@
     animation: bubbleWave 2.6s linear infinite;
   }
   @keyframes bubbleWave{ from{ background-position-x:0; } to{ background-position-x:-16px; } }
-  .result-pill.bubble > *{ position:relative; z-index:1; }
-  .result-pill.bubble .icn-arrow{ font-size:14px; }
+  .result-pill.bubble > *{ position:relative; z-index:1; } /* ícone + texto acima do líquido */
   @media (min-width:720px){
     .head-expanded{ max-height:270px; overflow:visible; }
     .total-row{ align-items:center; flex-wrap:nowrap; }
-    .bubble-wrap{ order:3; width:auto; margin-top:0; flex:0 0 auto; }
-    .result-pill.bubble{
-      width:148px; height:92px; font-size:19px;
-    }
-    .result-pill.bubble::before{ height:4px; }
-    .result-pill.bubble .icn-arrow{ font-size:24px; }
+    .bubble-wrap{ order:3; width:auto; margin:0 4px 0 0; flex:0 0 auto; }
+    .result-pill.bubble{ height:72px; padding:0 28px; font-size:20px; }
+    .result-pill.bubble .icn-arrow{ font-size:22px; }
 
     /* ===== Faixa com os dois gráficos (barras + linha) =====
        `.charts-row` é o container flex que fica entre o total (à esquerda)
@@ -818,7 +806,7 @@ function arrowIcon(positive, size=15){
   return `<span class="material-symbols-outlined icn-arrow" style="font-size:${size}px">${positive?'arrow_upward':'arrow_downward'}</span>`;
 }
 
-// Nível de "líquido" do cartão de rentabilidade (efeito copo enchendo/
+// Nível de "líquido" do pill de rentabilidade (efeito copo enchendo/
 // esvaziando): mapeia o |%| da rentabilidade pra uma altura de 0–100%.
 // maxEscala = a partir de qual % (em módulo) o copo já fica cheio; acima
 // disso continua mostrando 100%, só não "transborda" visualmente.
@@ -1383,17 +1371,15 @@ function renderHeader(){
   document.getElementById('totalInvested').textContent = fmtBRLShort(g.investido);
   document.getElementById('totalResultAbs').textContent = (g.resultado>=0?'+':'-') + fmtBRLShort(Math.abs(g.resultado));
 
-  // "bubble" fica sempre na classe pra manter o cartão com efeito de
-  // líquido (ver CSS .result-pill.bubble / .bubble-liquid); só pos/neg
-  // alternam a cor via currentColor. A div .bubble-liquid é a "água"
-  // subindo/descendo dentro do cartão — a altura dela vem de
-  // bubbleFillPct(), e a transição de altura (definida no CSS) que dá a
-  // sensação de "enchendo ou esvaziando" quando o % muda.
+  // "bubble" ajusta o tamanho por cima do que .result-pill.pos/.neg já
+  // define (cor, borda, fundo translúcido, glow pulsando). A div
+  // .bubble-liquid é a "água" subindo/descendo dentro do pill — altura
+  // calculada em bubbleFillPct(), com a transição suave definida no CSS.
   const pill = document.getElementById('totalResultPill');
   pill.className = 'result-pill bubble ' + (g.resultado>=0?'pos':'neg');
   pill.innerHTML = `<span class="bubble-liquid" style="height:${bubbleFillPct(g.pct).toFixed(0)}%"></span>`
     + arrowIcon(g.resultado>=0)
-    + ` <span class="bubble-txt">${fmtPct(Math.abs(g.pct)).replace('+','')}</span>`;
+    + ` ${fmtPct(Math.abs(g.pct)).replace('+','')}`;
 
   document.getElementById('totalValueMini').textContent = fmtBRLShort(g.atual);
   const pillMini = document.getElementById('totalResultPillMini');
@@ -1463,15 +1449,19 @@ function emptyStateHtml(title, desc, cta, catId){
    Identifica a guia pelo nome (sem acento/maiúsculas) em vez de um id fixo,
    já que ela é criada pelo usuário como uma guia personalizada.
    ---------------------------------------------------------
-   Antes esse bloco mostrava sempre um % fixo (Renda Fixa sobre as outras
-   guias) — tirado, ninguém pediu isso ficar aparecendo toda hora.
-   Agora o que existe é: cada posição/item de Renda Fixa pode ser marcado
-   como "reserva de emergência" ou "reserva de oportunidade" (dropdown
-   dentro do próprio item, só nesta guia — ver reservaTipo). Só quando tem
-   pelo menos um item marcado é que aparece uma barrinha de progresso
-   discreta (ver reservaBarHtml) comparando a soma do que foi marcado com
-   a meta digitável (metaReservaEmergencia / metaReservaOportunidade,
-   configuradas aqui no card do topo).
+   Não existe mais um card fixo no topo da guia. O fluxo agora é todo
+   contextual, dentro de cada posição/item:
+     1) o usuário abre o ativo e escolhe "Reserva de emergência" ou
+        "Reserva de oportunidade" no dropdown (ver reservaSelectHtml);
+     2) ao escolher, abre um diálogo (openReservaMetaModal) perguntando a
+        meta de valor pra aquela reserva;
+     3) ao salvar, guardamos a meta na GUIA (cat.metaReservaEmergencia /
+        cat.metaReservaOportunidade — é uma meta agregada, soma de todos
+        os itens marcados do mesmo tipo) e o tipo no próprio item/posição;
+     4) só então a barrinha de progresso (reservaBarHtml) aparece, entre o
+        nome do ativo e o valor — igual o farol de Ações/FIIs, só que uma
+        barra em vez de bolinha.
+   Escolher "Nenhuma" remove a marcação na hora, sem precisar de diálogo.
 ========================================================= */
 function normalizeLabel(s){
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
@@ -1495,76 +1485,95 @@ function rendaFixaReservaTotals(cat){
   });
   return { emergencia, oportunidade };
 }
-function rendaFixaExtraHtml(cat){
-  return `
-    <div class="card" style="margin-bottom:16px;">
-      <div class="label">Reservas</div>
-      <p class="desc" style="margin:4px 0 12px;">Abra um item aqui embaixo e marque se ele conta como reserva de emergência ou de oportunidade. A barrinha de progresso só aparece nos itens marcados.</p>
-      <div class="field-row">
-        <div class="field-group"><label class="field">Meta reserva de emergência</label><input type="number" step="0.01" id="metaReserva-${cat.id}" value="${cat.metaReservaEmergencia||0}"></div>
-        <div class="field-group"><label class="field">Meta reserva de oportunidade</label><input type="number" step="0.01" id="metaReservaOport-${cat.id}" value="${cat.metaReservaOportunidade||0}"></div>
-      </div>
-      <button class="btn ghost btn-sm" style="width:100%; margin-top:8px;" onclick="updateMetaReserva('${cat.id}')">Salvar metas</button>
-    </div>`;
-}
-function updateMetaReserva(catId){
-  const cat = STATE.categories.find(c=>c.id===catId);
-  if (!cat) return;
-  const inpEmerg = document.getElementById('metaReserva-'+catId);
-  const inpOport = document.getElementById('metaReservaOport-'+catId);
-  const vEmerg = inpEmerg ? parseFloat(inpEmerg.value) : NaN;
-  const vOport = inpOport ? parseFloat(inpOport.value) : NaN;
-  if (!isNaN(vEmerg) && vEmerg>=0) cat.metaReservaEmergencia = vEmerg;
-  if (!isNaN(vOport) && vOport>=0) cat.metaReservaOportunidade = vOport;
-  persist();
-}
-// Salva a escolha de reserva (dropdown) de uma POSIÇÃO (modelo mercado —
-// Renda Fixa criada com ticker/preço).
-function updatePosReservaTipo(catId, posId){
-  const sel = document.getElementById('reserva-'+posId);
-  if (!sel) return;
-  const pos = STATE.data[catId].positions.find(p=>p.id===posId);
-  if (!pos) return;
-  pos.reservaTipo = sel.value || '';
-  persist();
-}
-// Mesma coisa, só que pra um ITEM (modelo saldo — Renda Fixa criada como
-// conta/saldo, tipo Previdência/FGTS).
-function updateItemReservaTipo(catId, itemId){
-  const sel = document.getElementById('reserva-'+itemId);
-  if (!sel) return;
-  const item = STATE.data[catId].items.find(i=>i.id===itemId);
-  if (!item) return;
-  item.reservaTipo = sel.value || '';
-  persist();
+// Acha a posição OU o item pelo id, em qualquer um dos dois modelos de
+// dados da guia — evita duplicar essa busca nas 3 funções abaixo.
+function findRendaFixaAsset(catId, id){
+  const d = STATE.data[catId];
+  return (d.positions||[]).find(p=>p.id===id) || (d.items||[]).find(i=>i.id===id) || null;
 }
 // Dropdown "Marcar como reserva" — só é injetado nos detalhes de posição/
 // item quando isRendaFixaCat(cat) é true (ver renderMarketPanel/
-// renderSaldoPanel). `onclickFn` é o nome da função de salvar (uma das
-// duas acima, dependendo do modelo de dados da guia).
-function reservaSelectHtml(id, reservaTipo, catId, onclickFn){
+// renderSaldoPanel). Sem botão "Salvar": a troca já dispara
+// onReservaSelectChange() sozinha (Nenhuma some na hora; os outros dois
+// valores abrem o diálogo perguntando a meta).
+function reservaSelectHtml(id, reservaTipo, catId){
   return `
     <div class="field-group" style="margin:10px 0;">
       <label class="field">Marcar como reserva</label>
-      <select id="reserva-${id}">
+      <select id="reserva-${id}" onchange="onReservaSelectChange('${catId}','${id}')">
         <option value="" ${!reservaTipo?'selected':''}>Nenhuma</option>
         <option value="emergencia" ${reservaTipo==='emergencia'?'selected':''}>Reserva de emergência</option>
         <option value="oportunidade" ${reservaTipo==='oportunidade'?'selected':''}>Reserva de oportunidade</option>
       </select>
-    </div>
-    <button class="btn ghost btn-sm" style="width:100%; margin-bottom:8px;" onclick="${onclickFn}('${catId}','${id}')">Salvar reserva</button>`;
+    </div>`;
 }
-// Barrinha de progresso discreta (tipo o farol, só que uma barra) — some
-// só aparece se o item/posição estiver marcado (reservaTipo truthy). O
-// valor mostrado é a SOMA de tudo que está marcado com esse mesmo tipo
-// dentro da guia (não só deste item), comparado com a meta configurada
-// no card "Reservas" no topo da guia.
+// Disparado pelo onchange do <select> acima.
+function onReservaSelectChange(catId, id){
+  const sel = document.getElementById('reserva-'+id);
+  const cat = STATE.categories.find(c=>c.id===catId);
+  const asset = findRendaFixaAsset(catId, id);
+  if (!sel || !cat || !asset) return;
+  const novoTipo = sel.value;
+
+  if (!novoTipo){
+    // "Nenhuma": remove a marcação direto, sem precisar de diálogo/meta.
+    // persist() já dispara renderAll() (chama de volta este mesmo painel),
+    // então não precisamos re-renderizar na mão aqui.
+    asset.reservaTipo = '';
+    persist();
+    return;
+  }
+  openReservaMetaModal(cat, id, novoTipo);
+}
+// Diálogo que pergunta a meta de valor da reserva escolhida. Vem
+// pré-preenchido com a meta que já existe pra esse tipo (se já tiver
+// outros itens marcados) — assim dá pra só confirmar sem perder o que já
+// estava configurado.
+function openReservaMetaModal(cat, id, tipo){
+  const label = tipo === 'emergencia' ? 'Reserva de emergência' : 'Reserva de oportunidade';
+  const metaAtual = tipo === 'emergencia' ? (cat.metaReservaEmergencia||0) : (cat.metaReservaOportunidade||0);
+  openModal(`
+    <div class="modal-head"><h3>${label}</h3><button class="close" onclick="cancelReservaSelect('${cat.id}','${id}')"><span class="material-symbols-outlined icn-sm">close</span></button></div>
+    <p class="desc" style="margin:-6px 0 14px;">Qual é a meta de valor pra essa reserva? Ela soma todos os itens de Renda Fixa marcados com o mesmo tipo, não só este.</p>
+    <div class="price-edit">
+      <label for="metaReservaModal">Meta (R$)</label>
+      <input type="number" step="0.01" id="metaReservaModal" value="${metaAtual}">
+    </div>
+    <button class="btn" style="width:100%; margin-top:14px;" onclick="confirmReservaSelect('${cat.id}','${id}','${tipo}')">Salvar</button>
+  `);
+}
+// Fechar sem confirmar: o <select> tinha mudado visualmente pro novo tipo
+// antes do diálogo abrir, então precisa voltar pro valor que estava
+// salvo de fato (senão fica mostrando um tipo que não foi confirmado).
+function cancelReservaSelect(catId, id){
+  const asset = findRendaFixaAsset(catId, id);
+  const sel = document.getElementById('reserva-'+id);
+  if (sel) sel.value = asset ? (asset.reservaTipo || '') : '';
+  closeModal();
+}
+function confirmReservaSelect(catId, id, tipo){
+  const metaInput = document.getElementById('metaReservaModal');
+  const meta = parseFloat(metaInput.value);
+  if (isNaN(meta) || meta < 0) return;
+  const cat = STATE.categories.find(c=>c.id===catId);
+  const asset = findRendaFixaAsset(catId, id);
+  if (!cat || !asset) return;
+  if (tipo === 'emergencia') cat.metaReservaEmergencia = meta;
+  else cat.metaReservaOportunidade = meta;
+  asset.reservaTipo = tipo;
+  persist(); // persist() já chama renderAll(), que redesenha esse painel
+  closeModal();
+}
+// Barrinha de progresso discreta (tipo o farol, só que uma barra) — só
+// aparece se o item/posição estiver marcado (reservaTipo truthy). O valor
+// mostrado é a SOMA de tudo que está marcado com esse mesmo tipo dentro
+// da guia (não só deste item), comparado com a meta definida no diálogo.
 function reservaBarHtml(reservaTipo, valorMarcado, meta){
   if (!reservaTipo) return '';
   const label = reservaTipo === 'emergencia' ? 'Reserva de emergência' : 'Reserva de oportunidade';
   const cor = reservaTipo === 'emergencia' ? '#2EE6A6' : '#FFC53D';
   if (!(meta>0)){
-    return `<span class="reserva-bar-wrap" title="Defina uma meta pra essa reserva no card 'Reservas', no topo da guia."><span class="reserva-bar-label" style="color:${cor}">${label}</span></span>`;
+    return `<span class="reserva-bar-wrap" title="Sem meta definida pra essa reserva ainda."><span class="reserva-bar-label" style="color:${cor}">${label}</span></span>`;
   }
   const pct = Math.min(100, (valorMarcado/meta)*100);
   return `<span class="reserva-bar-wrap" title="${label}: ${fmtBRLShort(valorMarcado)} de ${fmtBRLShort(meta)} (${fmtNum(pct,0)}%)">
@@ -1580,9 +1589,6 @@ function renderMarketPanel(cat){
   const positions = STATE.data[cat.id].positions;
 
   let html = summaryCardsHtml(t);
-  // Bloco especial da guia "Renda Fixa", só quando ela é criada no modelo
-  // ticket + preço (mercado) em vez de saldo — ver rendaFixaExtraHtml().
-  if (isRendaFixaCat(cat)) html += rendaFixaExtraHtml(cat);
   html += sectionHeadHtml('Posições', positions.length, positions.length===1?'ativo':'ativos');
   // Ações/FIIs: mostra teto e % de aporte alvo digitáveis por posição, mais
   // o % que cada posição representa do total já investido na guia.
@@ -1642,7 +1648,7 @@ function renderMarketPanel(cat){
           <button class="btn ghost btn-sm" style="width:100%; margin-bottom:8px;" onclick="updatePosAlvo('${cat.id}','${pos.id}')">Salvar teto / %</button>
           <div class="mini-stat" style="margin-bottom:8px;">% do total em ${cat.label}<b>${fmtNum(pctDoTotalCategoria,2)}%</b></div>
           ` : ''}
-          ${rendaFixa ? reservaSelectHtml(pos.id, pos.reservaTipo, cat.id, 'updatePosReservaTipo') : ''}
+          ${rendaFixa ? reservaSelectHtml(pos.id, pos.reservaTipo, cat.id) : ''}
           <div class="price-edit">
             <label for="price-${pos.id}">Preço atual</label>
             <input type="number" step="0.01" id="price-${pos.id}" value="${pos.precoAtual}">
@@ -1700,11 +1706,10 @@ function renderSaldoPanel(cat){
 
   let html = summaryCardsHtml(t, {investLabel, currentLabel:'Saldo atual', resultLabel:'Rendimento'});
   if (cat.id === 'fgts') html += fgtsRescisaoHtml(cat.id);
-  // Bloco especial só da guia "Renda Fixa" (criada pelo usuário): metas de
-  // reserva de emergência/oportunidade digitáveis. Não aparece em nenhuma
-  // outra guia. Ver comentário completo em rendaFixaExtraHtml().
+  // Guia "Renda Fixa" (criada pelo usuário): não tem mais card fixo aqui —
+  // a marcação de reserva e a meta são configuradas dentro de cada item
+  // (ver reservaSelectHtml / onReservaSelectChange mais acima).
   const rendaFixa = isRendaFixaCat(cat);
-  if (rendaFixa) html += rendaFixaExtraHtml(cat);
   const reservaTotals = rendaFixa ? rendaFixaReservaTotals(cat) : null;
   html += sectionHeadHtml(cat.label==='FGTS'?'Contas vinculadas':'Itens', items.length, items.length===1?cat.unit:cat.unit+'s');
 
@@ -1721,7 +1726,7 @@ function renderSaldoPanel(cat){
     const isOpen = OPEN_ROWS.has(item.id);
     const histSorted = [...moves].sort((a,b)=>b.data.localeCompare(a.data));
     // Barrinha de reserva: só em Renda Fixa, só se este item estiver
-    // marcado (item.reservaTipo) — ver rendaFixaExtraHtml() pro contexto.
+    // marcado (item.reservaTipo) — ver o bloco "RENDA FIXA" mais acima.
     const reservaBar = (rendaFixa && item.reservaTipo)
       ? reservaBarHtml(item.reservaTipo, reservaTotals[item.reservaTipo], item.reservaTipo==='emergencia' ? (cat.metaReservaEmergencia||0) : (cat.metaReservaOportunidade||0))
       : '';
@@ -1740,7 +1745,7 @@ function renderSaldoPanel(cat){
           </div>
         </div>
         <div class="pos-detail ${isOpen?'open':''}" id="detail-${item.id}">
-          ${rendaFixa ? reservaSelectHtml(item.id, item.reservaTipo, cat.id, 'updateItemReservaTipo') : ''}
+          ${rendaFixa ? reservaSelectHtml(item.id, item.reservaTipo, cat.id) : ''}
           <div class="grid2">
             <div class="mini-stat">Total ${cat.entradaLabel.toLowerCase()}${moves.length===1?'':'s'}<b class="money">${fmtBRL(movimentado)}</b></div>
             <div class="mini-stat">Rendimento<b class="money" style="color:${resultado>=0?'#2EE6A6':'#FF5C7A'}">${(resultado>=0?'+':'')+fmtBRL(resultado)}</b></div>
