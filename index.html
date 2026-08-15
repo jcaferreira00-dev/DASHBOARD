@@ -142,50 +142,62 @@
   header.top.collapsed .head-expanded{ max-height:0; opacity:0; margin-top:0; }
 
   .total-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
-  /* No celular o pill de rentabilidade fica em uma linha própria,
-     centralizada, logo ABAIXO da linha dos 4 botões do cabeçalho (olho,
-     rosca, sliders, nuvem) e ACIMA do valor total — não lá embaixo, depois
-     de aportado/resultado/composição. `order:-1` faz ela vir antes do
-     resto dentro do `.total-row` (que tem flex-wrap:wrap); `width:100%`
-     força a quebra de linha (ela sozinha ocupa a linha toda); e
-     `justify-content:center` centraliza nessa linha própria.
-     Os dois gráficos (barras de patrimônio + linha de rentabilidade) só
-     aparecem a partir do breakpoint desktop (ver media query abaixo).
-     overflow:visible + margem garantem que o glow do pillPulse (a sombra
-     pulsando) não seja cortado pela borda do cabeçalho. */
-  .bubble-wrap{ order:-1; width:100%; display:flex; justify-content:center; margin-bottom:14px; overflow:visible; }
+  /* No celular a bolha continua aqui no total-row (não dentro dos
+     botões — aquilo era só referência visual de posição). O
+     margin-right:58px alinha ela horizontalmente embaixo do vão entre os
+     botões Dashboard e Config: cada icon-btn tem 33px + 7px de gap entre
+     eles (cloud 0–33 / gap 33–40 / tools 40–73 / gap 73–80 / dashboard
+     80–113, contando a partir da borda direita do cabeçalho); o meio do
+     vão dashboard↔tools fica a 76.5px da borda, e com a bolha de 38px
+     isso dá ~57.5px de margem pra borda direita dela bater nesse ponto. */
+  .bubble-wrap{ display:flex; justify-content:flex-end; align-self:center; flex:0 0 auto; overflow:visible; margin-right:58px; }
   .charts-row{ display:none; }
 
-  /* ===== Cartão de rentabilidade (pill arredondado + copo enchendo) =====
-     A FORMA e a COR continuam vindo de `.result-pill.pos`/`.neg` (borda
-     fina, fundo translúcido, glow pulsando) — `.bubble` só ajusta
-     tamanho. A novidade é a camada `.bubble-liquid` (ver mais abaixo):
-     um "nível de água" que sobe/desce por dentro do pill conforme o |%|
-     de rentabilidade, sem nunca sair da forma arredondada.
-     IMPORTANTE sobre bordas cortadas: `overflow:hidden` aqui serve só pra
-     recortar o líquido no formato do pill — isso NÃO corta o box-shadow
-     (o glow do pillPulse), porque overflow de um elemento nunca recorta
-     a própria sombra dele, só o conteúdo interno. Quem cortava a sombra
-     antes era o `.bubble-wrap`/`.head-expanded` ao redor, não o pill em
-     si — por isso a margem de segurança fica no wrapper (linha acima),
-     não aqui. */
+  /* ===== Cartão de rentabilidade (bolha com visual de vidro/metal) =====
+     A FORMA e a COR de base continuam vindo de `.result-pill.pos`/`.neg`
+     (borda fina, fundo translúcido) — `.bubble` ajusta tamanho e visual.
+     O visual é o mesmo no celular e no desktop (só muda o tamanho — ver
+     media query min-width:720px): círculo com gradiente metálico +
+     reflexo de vidro no canto superior-esquerdo (::after), sombra de
+     baixo pra fora pra dar sensação de "flutuando". Sem líquido/pontinhos
+     animados (ver .bubble-liquid, oculta por padrão logo abaixo). */
   .result-pill.bubble{
     position:relative; isolation:isolate; overflow:hidden;
-    height:46px; padding:0 20px; font-size:15px; gap:6px;
+    width:38px; height:38px; padding:0; font-size:8.5px;
+    border-radius:50%; flex-direction:column; justify-content:center; gap:0;
+    background: linear-gradient(150deg,
+      color-mix(in srgb, currentColor 24%, #1c1c1c 76%) 0%,
+      color-mix(in srgb, currentColor 8%, #0a0a0a 92%) 55%,
+      color-mix(in srgb, currentColor 30%, #1c1c1c 70%) 100%);
+    box-shadow:
+      0 6px 16px -6px rgba(0,0,0,.6),
+      0 0 0 1px color-mix(in srgb, currentColor 30%, transparent);
   }
-  .result-pill.bubble .icn-arrow{ font-size:17px; }
-  /* Camada de líquido: a altura vem do JS (bubbleFillPct), com transição
-     suave pra dar a sensação de "enchendo/esvaziando" quando o % muda.
-     Fica atrás do ícone/número (z-index 0 vs 1 — ver regras abaixo). */
+  .result-pill.bubble .icn-arrow{ font-size:10px; }
+  /* Brilho de vidro/metal: reflexo elíptico no canto superior-esquerdo —
+     mesmo em mobile e desktop, só escala com o tamanho do círculo. */
+  .result-pill.bubble::after{
+    content:''; position:absolute; inset:0; z-index:2; pointer-events:none;
+    border-radius:50%;
+    background: radial-gradient(ellipse 55% 40% at 30% 22%, rgba(255,255,255,.55), rgba(255,255,255,.08) 45%, transparent 70%);
+    mix-blend-mode:screen;
+  }
+  /* Camada de líquido: existia antes como "nível de água" animado dentro
+     da bolha. Fica OCULTA (display:none) tanto no celular quanto no
+     desktop agora — o visual passou a ser fixo (vidro/metal) nos dois
+     tamanhos, sem essa animação. Continua calculando a altura via
+     bubbleFillPct() no JS, só não é exibida. */
   .result-pill.bubble > .bubble-liquid{
+    display:none;
     position:absolute; left:0; right:0; bottom:0; z-index:0;
     background: linear-gradient(180deg,
       color-mix(in srgb, currentColor 42%, transparent) 0%,
       color-mix(in srgb, currentColor 68%, transparent) 100%);
     transition: height .9s cubic-bezier(.4,0,.2,1);
   }
-  /* Textura de ondinha na superfície do líquido, andando pro lado em loop
-     — evita que a superfície pareça uma linha reta e estática. */
+  /* Textura de ondinha na superfície do líquido — mantida no CSS (não
+     usada mais visualmente já que .bubble-liquid está oculta), só não
+     removida pra não quebrar nada caso a camada volte a ser exibida. */
   .result-pill.bubble > .bubble-liquid::before{
     content:''; position:absolute; top:-4px; left:-50%; width:200%; height:8px;
     background: radial-gradient(ellipse at center, currentColor 46%, transparent 52%);
@@ -197,30 +209,16 @@
   @media (min-width:720px){
     .head-expanded{ max-height:270px; overflow:visible; }
     .total-row{ align-items:center; flex-wrap:nowrap; }
-    .bubble-wrap{ order:3; width:auto; margin:0 4px 0 0; flex:0 0 auto; }
-    /* No desktop a "pill" horizontal virava uma elipse esticada (largura
-       bem maior que a altura). Agora é um círculo de verdade — largura
-       igual à altura, conteúdo empilhado (ícone em cima, % embaixo) — e
-       ganha um brilho de vidro (::after) pra parecer uma esfera 3D, não
-       só um círculo chapado. */
+    /* No desktop a bolha ocupa o lado direito do total-row, ao lado do
+       valor, sem a margem que a alinha com o vão dos botões no celular. */
+    .bubble-wrap{ order:3; width:auto; margin:0 4px 0 0; }
+    /* Mesmo visual de vidro/metal do celular, só maior — círculo de
+       verdade (largura igual à altura), conteúdo empilhado (ícone em
+       cima, % embaixo). */
     .result-pill.bubble{
-      width:88px; height:88px; padding:0; font-size:15.5px;
-      border-radius:50%; flex-direction:column; justify-content:center; gap:1px;
-      box-shadow:
-        inset 0 -14px 18px -8px rgba(0,0,0,.45),
-        inset 0 10px 16px -6px rgba(255,255,255,.4),
-        0 8px 20px -6px rgba(0,0,0,.55);
+      width:96px; height:96px; font-size:16.5px;
     }
-    .result-pill.bubble .icn-arrow{ font-size:19px; }
-    /* Brilho de vidro: um reflexo elíptico no canto superior-esquerdo,
-       típico de esfera de vidro/gel — fica por cima de tudo (z-index 2)
-       e não intercepta clique (pointer-events:none). */
-    .result-pill.bubble::after{
-      content:''; position:absolute; inset:0; z-index:2; pointer-events:none;
-      border-radius:50%;
-      background: radial-gradient(ellipse 60% 42% at 32% 24%, rgba(255,255,255,.65), rgba(255,255,255,.12) 45%, transparent 70%);
-      mix-blend-mode:screen;
-    }
+    .result-pill.bubble .icn-arrow{ font-size:21px; }
 
     /* ===== Faixa com os dois gráficos (barras + linha) =====
        `.charts-row` é o container flex que fica entre o total (à esquerda)
@@ -309,6 +307,21 @@
   .result-pill.pos{ color:#2EE6A6; background: rgba(46,230,166,.12); border:1.5px solid rgba(46,230,166,.55); box-shadow:0 0 0 0 rgba(46,230,166,.3); }
   .result-pill.neg{ color:#FF5C7A; background: rgba(255,92,122,.12); border:1.5px solid rgba(255,92,122,.55); box-shadow:0 0 0 0 rgba(255,92,122,.3); }
   .result-pill.sm{ font-size:10.5px; padding:3px 8px; animation:none; height:20px; }
+  /* Bolha mini: usada no cabeçalho JÁ RECOLHIDO (depois que o usuário
+     puxa o scroll pra baixo — ver header.top.collapsed / handleScroll no
+     JS). Precisa de mais especificidade que .bubble e .sm sozinhos pra
+     vencer o padding/height/animation:none deles — por isso o seletor
+     combinado .bubble.sm. Continua "flutuando" (mesma sombra de
+     elevação), só que ainda menor pra caber ao lado do valor mini. */
+  .result-pill.bubble.sm{
+    width:28px; height:28px; padding:0; font-size:8px;
+    border-radius:50%; flex-direction:column; justify-content:center; gap:0;
+    animation: pillPulse 2.6s ease-in-out infinite;
+    box-shadow:
+      0 4px 10px -4px rgba(0,0,0,.6),
+      0 0 0 1px color-mix(in srgb, currentColor 30%, transparent);
+  }
+  .result-pill.bubble.sm .icn-arrow{ font-size:9px; }
   @keyframes pillPulse{
     0%,100%{ box-shadow:0 0 0 0 currentColor; }
     50%{ box-shadow:0 0 10px 1px currentColor; }
@@ -639,7 +652,7 @@
       <svg id="donutMini" width="34" height="34" viewBox="0 0 42 42"></svg>
       <div class="collapsed-nums">
         <span class="cv mono money" id="totalValueMini">R$ 0</span>
-        <span class="result-pill sm pos" id="totalResultPillMini"><span class="material-symbols-outlined icn-arrow" style="font-size:12px">arrow_upward</span> 0%</span>
+        <span class="result-pill bubble sm pos" id="totalResultPillMini"><span class="material-symbols-outlined icn-arrow" style="font-size:9px">arrow_upward</span> 0%</span>
       </div>
     </div>
   </div>
@@ -829,8 +842,9 @@ const fmtPct = (n) => (n>0?'+':'') + n.toLocaleString('pt-BR',{minimumFractionDi
 const fmtDate = (iso) => { const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; };
 const fmtDateTime = (iso) => { try{ return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return '—'; } };
 const fmtNum = (n, dec=0) => n.toLocaleString('pt-BR',{minimumFractionDigits:dec, maximumFractionDigits:dec});
-function arrowIcon(positive, size=15){
-  return `<span class="material-symbols-outlined icn-arrow" style="font-size:${size}px">${positive?'arrow_upward':'arrow_downward'}</span>`;
+function arrowIcon(positive, size=null){
+  const style = size ? ` style="font-size:${size}px"` : '';
+  return `<span class="material-symbols-outlined icn-arrow"${style}>${positive?'arrow_upward':'arrow_downward'}</span>`;
 }
 
 // Nível de "líquido" do pill de rentabilidade (efeito copo enchendo/
@@ -1396,19 +1410,23 @@ function renderHeader(){
   document.getElementById('totalResultAbs').textContent = (g.resultado>=0?'+':'-') + fmtBRLShort(Math.abs(g.resultado));
 
   // "bubble" ajusta o tamanho por cima do que .result-pill.pos/.neg já
-  // define (cor, borda, fundo translúcido, glow pulsando). A div
-  // .bubble-liquid é a "água" subindo/descendo dentro do pill — altura
-  // calculada em bubbleFillPct(), com a transição suave definida no CSS.
-  const pill = document.getElementById('totalResultPill');
-  pill.className = 'result-pill bubble ' + (g.resultado>=0?'pos':'neg');
-  pill.innerHTML = `<span class="bubble-liquid" style="height:${bubbleFillPct(g.pct).toFixed(0)}%"></span>`
+  // define (cor, borda, fundo translúcido). A div .bubble-liquid existe
+  // no markup mas fica oculta via CSS (visual agora é fixo, vidro/metal).
+  const pillHtml = () =>
+    `<span class="bubble-liquid" style="height:${bubbleFillPct(g.pct).toFixed(0)}%"></span>`
     + arrowIcon(g.resultado>=0)
     + ` ${fmtPct(Math.abs(g.pct)).replace('+','')}`;
 
+  const pill = document.getElementById('totalResultPill');
+  pill.className = 'result-pill bubble ' + (g.resultado>=0?'pos':'neg');
+  pill.innerHTML = pillHtml();
+
   document.getElementById('totalValueMini').textContent = fmtBRLShort(g.atual);
   const pillMini = document.getElementById('totalResultPillMini');
-  pillMini.className = 'result-pill sm ' + (g.resultado>=0?'pos':'neg');
-  pillMini.innerHTML = arrowIcon(g.resultado>=0, 12) + ' ' + fmtPct(Math.abs(g.pct)).replace('+','');
+  pillMini.className = 'result-pill bubble sm ' + (g.resultado>=0?'pos':'neg');
+  pillMini.innerHTML = `<span class="bubble-liquid" style="height:${bubbleFillPct(g.pct).toFixed(0)}%"></span>`
+    + arrowIcon(g.resultado>=0, 9)
+    + ' ' + fmtPct(Math.abs(g.pct)).replace('+','');
 
   renderDoubleDonut('donutMini', allocationSegments(g), innerRingSegments(g), 15, 3.4, 8.4, 3.2);
   // Os dois gráficos do cabeçalho: barras (patrimônio por mês) e linha
