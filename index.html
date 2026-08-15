@@ -872,6 +872,42 @@ function calcPositionMetrics(pos){
 }
 
 /* =========================================================
+   METAS RECOMENDADAS (carteira recomendada Suno Research)
+   ---------------------------------------------------------
+   Só serve pra PRÉ-PREENCHER os campos de "Preço teto" e "% aporte alvo"
+   quando a posição ainda não tem nada salvo (pos.valorTeto e
+   pos.pctAporteAlvo em 0) — ver recommendedTarget() e o HTML dos campos
+   em renderPositions(). Nada aqui é gravado sozinho: o valor só vira meta
+   de verdade se o usuário clicar em "Salvar teto / %", que chama
+   updatePosAlvo() e grava em pos.valorTeto/pos.pctAporteAlvo normalmente.
+   Ações e FIIs têm as duas coisas (preço-teto e % de alocação-alvo). Nas
+   FIIs a Suno recomenda peso igual entre os 21 fundos, por isso todos
+   saem com o mesmo % (~4,8%); nas ações o peso varia por ativo. */
+const RECOMMENDED_TARGETS = {
+  // Ações — preço-teto (R$) + % de alocação-alvo
+  WIZC3:{teto:10.00,pct:10.0}, BBSE3:{teto:35.50,pct:10.0}, BBAS3:{teto:25.00,pct:10.0}, UNIP6:{teto:70.00,pct:10.0},
+  SEER3:{teto:14.00,pct:5.0}, SLCE3:{teto:20.40,pct:5.0}, VALE3:{teto:78.00,pct:5.0}, PETR4:{teto:38.00,pct:7.5},
+  AXIA7:{teto:42.40,pct:5.0}, TUPY3:{teto:21.00,pct:7.5}, AGRO3:{teto:27.50,pct:2.5}, EGIE3:{teto:28.60,pct:7.5},
+  ITSA4:{teto:11.50,pct:5.0},
+  // FIIs — preço-teto (R$) + % de alocação-alvo (peso igual, ~4,8% cada)
+  PMLL11:{teto:128.00,pct:4.8}, BTLG11:{teto:112.00,pct:4.8}, VISC11:{teto:118.00,pct:4.8},
+  TRXF11:{teto:122.00,pct:4.8}, GARE11:{teto:10.40,pct:4.8}, XPML11:{teto:123.00,pct:4.8},
+  MCCI11:{teto:96.00,pct:4.8}, HGLG11:{teto:160.00,pct:4.8}, HGRU11:{teto:135.00,pct:4.8},
+  RECR11:{teto:89.00,pct:4.8}, VGIP11:{teto:92.00,pct:4.8}, BRCO11:{teto:128.00,pct:4.8},
+  FATN11:{teto:92.00,pct:4.8}, RBRY11:{teto:95.00,pct:4.8}, MXRF11:{teto:9.75,pct:4.8},
+  HTMX11:{teto:142.00,pct:4.8}, KNUQ11:{teto:106.00,pct:4.8}, VRTA11:{teto:83.00,pct:4.8},
+  KNRI11:{teto:163.00,pct:4.8}, XPLG11:{teto:114.00,pct:4.8}, PVBI11:{teto:83.00,pct:4.8},
+};
+// Retorna o valor a mostrar no campo: o que o usuário já salvou (se > 0),
+// senão a recomendação da Suno pro ticker (se existir), senão 0.
+function recommendedTarget(pos, campo){ // campo: 'teto' ou 'pct'
+  const salvo = campo==='teto' ? (pos.valorTeto||0) : (pos.pctAporteAlvo||0);
+  if (salvo > 0) return salvo;
+  const rec = RECOMMENDED_TARGETS[pos.ticker];
+  return (rec && rec[campo]) || 0;
+}
+
+/* =========================================================
    FAROL DE META (Ações/FIIs)
    ---------------------------------------------------------
    Usa os dois campos que já existiam por posição:
@@ -1684,18 +1720,19 @@ function renderMarketPanel(cat){
           </div>
           ${mostraAlvoPosicao ? `
           <div class="field-row" style="margin:10px 0;">
-            <div class="field-group"><label class="field">Preço teto (compra)</label><input type="number" step="0.01" id="teto-${pos.id}" value="${pos.valorTeto||0}"></div>
-            <div class="field-group"><label class="field">% aporte alvo</label><input type="number" step="0.01" id="pctaporte-${pos.id}" value="${pos.pctAporteAlvo||0}"></div>
+            <div class="field-group"><label class="field">Preço teto (compra)</label><input type="number" step="0.01" id="teto-${pos.id}" value="${recommendedTarget(pos,'teto')}"></div>
+            <div class="field-group"><label class="field">% aporte alvo</label><input type="number" step="0.01" id="pctaporte-${pos.id}" value="${recommendedTarget(pos,'pct')}"></div>
           </div>
-          <button class="btn ghost btn-sm" style="width:100%; margin-bottom:8px;" onclick="updatePosAlvo('${cat.id}','${pos.id}')">Salvar teto / %</button>
+          <button class="btn ghost btn-sm" style="flex:none; width:auto; padding:5px 9px; margin-bottom:8px;" onclick="updatePosAlvo('${cat.id}','${pos.id}')" title="Salvar teto / % aporte alvo"><span class="material-symbols-outlined" style="font-size:16px">save</span></button>
           <div class="mini-stat" style="margin-bottom:8px;">% do total em ${cat.label}<b>${fmtNum(pctDoTotalCategoria,2)}%</b></div>
           ` : ''}
           ${rendaFixa ? reservaSelectHtml(pos.id, pos.reservaTipo, cat.id) : ''}
           <div class="price-edit">
-            <label for="price-${pos.id}">Preço atual</label>
-            <input type="number" step="0.01" id="price-${pos.id}" value="${pos.precoAtual}">
-            <button class="btn ghost btn-sm" onclick="updatePrice('${cat.id}','${pos.id}')">Salvar</button>
+            <label for="pm-${pos.id}">Preço médio (custo)</label>
+            <input type="number" step="0.01" id="pm-${pos.id}" value="${pos.precoMedio}">
+            <button class="btn ghost btn-sm" onclick="updatePrecoMedio('${cat.id}','${pos.id}')" title="Salvar preço médio"><span class="material-symbols-outlined" style="font-size:16px">save</span></button>
           </div>
+          <div class="mini-stat" style="margin-bottom:8px">Preço atual (automático)<b class="money">${fmtBRL(pos.precoAtual)}</b></div>
           <div class="mini-stat" style="margin-bottom:8px">Cotação atualizada em<b>${pos.atualizadoEm ? fmtDateTime(pos.atualizadoEm) : 'nunca via API'}</b></div>
           <div class="row-actions">
             <button class="btn ghost btn-sm" onclick="openTxModal('${cat.id}','${pos.id}','compra')">+ Compra</button>
@@ -1888,11 +1925,11 @@ function toggleRow(id){
 ========================================================= */
 async function persist(){ await DB.save(STATE); renderAll(); }
 
-function updatePrice(catId, posId){
-  const input = document.getElementById('price-'+posId);
+function updatePrecoMedio(catId, posId){
+  const input = document.getElementById('pm-'+posId);
   const val = parseFloat(input.value);
   if (isNaN(val) || val < 0) return;
-  STATE.data[catId].positions.find(p=>p.id===posId).precoAtual = val;
+  STATE.data[catId].positions.find(p=>p.id===posId).precoMedio = val;
   persist();
 }
 // Salva o "valor teto" e o "% de aporte alvo" de uma posição de Ações/FIIs —
