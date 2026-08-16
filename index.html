@@ -391,12 +391,13 @@
   @media (max-width:719px){
     .pm-inline{ display:none; }
   }
-  /* min-width fixo (em vez de largura "livre") — junto com o width fixo do
-     .farol-group acima, é o que garante que o farol caia sempre na mesma
-     coluna vertical entre o nome do ativo e o valor, linha após linha.
-     Continua sendo min-width (não width) pra números muito grandes não
-     serem cortados — só nesse caso raro a coluna cresce um pouco. */
-  .pos-nums{ text-align:right; flex-shrink:0; min-width:96px; }
+  /* width FIXO (não mais min-width) — antes, valores mais largos que o
+     min-width esticavam a coluna e deslocavam o farol pra esquerda
+     naquela linha específica, desalinhando ele das outras. Com width
+     fixo a coluna nunca muda de tamanho: se um valor for excepcionalmente
+     grande, ele quebra pra uma segunda linha (dentro da própria coluna,
+     por causa do text-align:right) em vez de empurrar o farol. */
+  .pos-nums{ text-align:right; flex-shrink:0; width:128px; }
   .pos-nums .val{ font-size:14.5px; font-weight:600; }
   .pos-nums .chg{ font-size:11.5px; margin-top:2px; }
   .pos-detail{ display:none; padding:0 14px 14px; border-top:1px dashed var(--rule); }
