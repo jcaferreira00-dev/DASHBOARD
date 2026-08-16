@@ -112,14 +112,24 @@
   .brand{ display:flex; flex-direction:column; gap:1px; min-width:0; }
   .brand .eyebrow{ font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color: var(--muted); transition: opacity .2s ease, max-height .2s ease; overflow:hidden; max-height:14px; }
   header.top.collapsed .brand .eyebrow{ opacity:0; max-height:0; }
-  .brand h1{
-    font-family:'Fraunces', serif; font-style:italic; font-weight:600; font-size:23px; margin:0; transition: font-size .25s ease;
-    background: linear-gradient(100deg, var(--gold), var(--coral) 30%, var(--violet) 60%, var(--cyan) 90%);
-    background-size: 300% auto; -webkit-background-clip:text; background-clip:text; color:transparent;
-    animation: brandShimmer 8s ease-in-out infinite;
+  .brand h1{ margin:0; }
+  /* ===== Wordmark "Carteira" =====
+     Antes: itálico com gradiente de 4 cores em looping infinito (dava
+     uma cara "genérica de app de crypto"). Agora: cor sólida (creme),
+     serifado, com uma marca gráfica ao lado — um selo circular fino com
+     uma seta ascendente (remete a "gráfico subindo" / patrimônio
+     crescendo), na cor ouro que já é a cor de destaque do app. Fixo, sem
+     animação — a app já tem bastante movimento em outros lugares
+     (aurora de fundo, farol pulsando etc), o nome não precisa competir. */
+  .wordmark{
+    display:flex; align-items:center; gap:7px;
+    font-family:'Fraunces', serif; font-style:italic; font-weight:600;
+    font-size:23px; letter-spacing:-.01em; color: var(--cream);
+    transition: font-size .25s ease;
   }
-  @keyframes brandShimmer{ 0%,100%{ background-position:0% 50%; } 50%{ background-position:100% 50%; } }
-  header.top.collapsed .brand h1{ font-size:18px; }
+  .wordmark .wm-mark{ width:20px; height:20px; flex-shrink:0; transition: width .25s ease, height .25s ease; }
+  header.top.collapsed .wordmark{ font-size:18px; }
+  header.top.collapsed .wordmark .wm-mark{ width:16px; height:16px; }
 
   .head-actions{ display:flex; gap:7px; flex-shrink:0; }
   .icon-btn{
@@ -132,115 +142,61 @@
   .icon-btn.synced{ color:#2EE6A6; border-color: rgba(46,230,166,.4); }
 
   .head-expanded{
-    /* max-height maior que antes: agora o pill de rentabilidade quebra
-       pra linha própria e centralizada no celular (ver .bubble-wrap
-       abaixo), o que usa mais altura — sem esse aumento, o cabeçalho
-       cortava o pill pela metade ao expandir. */
-    overflow:hidden; max-height:220px; opacity:1; margin-top:14px;
+    overflow:hidden; max-height:210px; opacity:1; margin-top:14px;
     transition: max-height .28s ease, opacity .2s ease, margin-top .28s ease;
   }
   header.top.collapsed .head-expanded{ max-height:0; opacity:0; margin-top:0; }
 
   .total-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;}
-  /* No celular a bolha continua aqui no total-row (não dentro dos
-     botões — aquilo era só referência visual de posição). O
-     margin-right:58px alinha ela horizontalmente embaixo do vão entre os
-     botões Dashboard e Config: cada icon-btn tem 33px + 7px de gap entre
-     eles (cloud 0–33 / gap 33–40 / tools 40–73 / gap 73–80 / dashboard
-     80–113, contando a partir da borda direita do cabeçalho); o meio do
-     vão dashboard↔tools fica a 76.5px da borda, e com a bolha de 38px
-     isso dá ~57.5px de margem pra borda direita dela bater nesse ponto. */
-  .bubble-wrap{ display:flex; justify-content:flex-end; align-self:center; flex:0 0 auto; overflow:visible; margin-right:58px; }
   .charts-row{ display:none; }
 
-  /* ===== Cartão de rentabilidade (bolha com visual de vidro/metal) =====
-     A FORMA e a COR de base continuam vindo de `.result-pill.pos`/`.neg`
-     (borda fina, fundo translúcido) — `.bubble` ajusta tamanho e visual.
-     O visual é o mesmo no celular e no desktop (só muda o tamanho — ver
-     media query min-width:720px): círculo com gradiente metálico +
-     reflexo de vidro no canto superior-esquerdo (::after), sombra de
-     baixo pra fora pra dar sensação de "flutuando". Sem líquido/pontinhos
-     animados (ver .bubble-liquid, oculta por padrão logo abaixo). */
-  .result-pill.bubble{
-    position:relative; isolation:isolate; overflow:hidden;
-    width:38px; height:38px; padding:0; font-size:8.5px;
-    border-radius:50%; flex-direction:column; justify-content:center; gap:0;
-    background: linear-gradient(150deg,
-      color-mix(in srgb, currentColor 24%, #1c1c1c 76%) 0%,
-      color-mix(in srgb, currentColor 8%, #0a0a0a 92%) 55%,
-      color-mix(in srgb, currentColor 30%, #1c1c1c 70%) 100%);
-    box-shadow:
-      0 6px 16px -6px rgba(0,0,0,.6),
-      0 0 0 1px color-mix(in srgb, currentColor 30%, transparent);
+  /* ===== Indicador de rentabilidade (chip, não mais bolha) =====
+     Antes era uma esfera de vidro/metal flutuante (.result-pill.bubble)
+     que nunca ficava no tamanho/posição certos em todas as telas. Agora
+     é um chip simples — mesma linguagem visual dos badges verde/vermelho
+     usados no resto do app (farol, ticker, resultado das posições) — que
+     fica colado ao valor total, tanto no celular quanto no desktop. Sem
+     bolha nenhuma sobrando: no desktop, todo o espaço que ela ocupava
+     agora é dos gráficos (ver .charts-row logo abaixo). */
+  .trend-chip{
+    display:inline-flex; align-items:center; gap:4px;
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; font-weight:600;
+    padding:4px 9px 4px 8px; border-radius:8px; white-space:nowrap;
+    margin-bottom:6px;
   }
-  .result-pill.bubble .icn-arrow{ font-size:10px; }
-  /* Brilho de vidro/metal: reflexo elíptico no canto superior-esquerdo —
-     mesmo em mobile e desktop, só escala com o tamanho do círculo. */
-  .result-pill.bubble::after{
-    content:''; position:absolute; inset:0; z-index:2; pointer-events:none;
-    border-radius:50%;
-    background: radial-gradient(ellipse 55% 40% at 30% 22%, rgba(255,255,255,.55), rgba(255,255,255,.08) 45%, transparent 70%);
-    mix-blend-mode:screen;
-  }
-  /* Camada de líquido: existia antes como "nível de água" animado dentro
-     da bolha. Fica OCULTA (display:none) tanto no celular quanto no
-     desktop agora — o visual passou a ser fixo (vidro/metal) nos dois
-     tamanhos, sem essa animação. Continua calculando a altura via
-     bubbleFillPct() no JS, só não é exibida. */
-  .result-pill.bubble > .bubble-liquid{
-    display:none;
-    position:absolute; left:0; right:0; bottom:0; z-index:0;
-    background: linear-gradient(180deg,
-      color-mix(in srgb, currentColor 42%, transparent) 0%,
-      color-mix(in srgb, currentColor 68%, transparent) 100%);
-    transition: height .9s cubic-bezier(.4,0,.2,1);
-  }
-  /* Textura de ondinha na superfície do líquido — mantida no CSS (não
-     usada mais visualmente já que .bubble-liquid está oculta), só não
-     removida pra não quebrar nada caso a camada volte a ser exibida. */
-  .result-pill.bubble > .bubble-liquid::before{
-    content:''; position:absolute; top:-4px; left:-50%; width:200%; height:8px;
-    background: radial-gradient(ellipse at center, currentColor 46%, transparent 52%);
-    background-size: 16px 8px; opacity:.8;
-    animation: bubbleWave 2.6s linear infinite;
-  }
-  @keyframes bubbleWave{ from{ background-position-x:0; } to{ background-position-x:-16px; } }
-  .result-pill.bubble > *{ position:relative; z-index:1; } /* ícone + texto acima do líquido */
+  .trend-chip .icn-arrow{ font-size:13px; }
+  .trend-chip.pos{ color:#2EE6A6; background: rgba(46,230,166,.12); border:1px solid rgba(46,230,166,.45); }
+  .trend-chip.neg{ color:#FF5C7A; background: rgba(255,92,122,.12); border:1px solid rgba(255,92,122,.45); }
+  /* Versão mini: mesmo chip, usada no cabeçalho já recolhido (depois que
+     o usuário rola a tela — ver header.top.collapsed no JS), ao lado do
+     valor mini. Continua sendo o mesmo chip retangular, só menor — nunca
+     mais uma bolha separada disputando espaço com o valor. */
+  .trend-chip.mini{ font-size:10.5px; padding:3px 7px 3px 6px; border-radius:6px; margin-bottom:0; }
+  .trend-chip.mini .icn-arrow{ font-size:11px; }
+  .total-value-row{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+
   @media (min-width:720px){
-    .head-expanded{ max-height:270px; overflow:visible; }
+    .head-expanded{ max-height:210px; overflow:visible; }
     .total-row{ align-items:center; flex-wrap:nowrap; }
-    /* No desktop a bolha ocupa o lado direito do total-row, ao lado do
-       valor, sem a margem que a alinha com o vão dos botões no celular. */
-    .bubble-wrap{ order:3; width:auto; margin:0 4px 0 0; }
-    /* Mesmo visual de vidro/metal do celular, só maior — círculo de
-       verdade (largura igual à altura), conteúdo empilhado (ícone em
-       cima, % embaixo). */
-    .result-pill.bubble{
-      width:96px; height:96px; font-size:16.5px;
-    }
-    .result-pill.bubble .icn-arrow{ font-size:21px; }
 
     /* ===== Faixa com os dois gráficos (barras + linha) =====
-       `.charts-row` é o container flex que fica entre o total (à esquerda)
-       e a bolha (à direita). Cada gráfico agora usa bem mais espaço do
-       que antes (era metade de uma faixa estreita) — a barra fica um
-       pouco mais larga que a linha (flex 1.15 vs 1) porque tem rótulo de
-       mês embaixo de cada barra e precisa "respirar" mais. */
+       Com a bolha fora do total-row, essa faixa agora ocupa TODO o
+       espaço restante ao lado do valor total (flex:1, sem teto de
+       largura) — os gráficos ficam bem maiores do que antes. */
     .charts-row{
-      display:flex; gap:14px; order:2;
-      flex:3 1 auto; min-width:340px; max-width:900px;
+      display:flex; gap:16px; flex:1 1 auto; min-width:340px;
     }
     .chart-wrap{
-      display:flex; flex-direction:column; justify-content:center; gap:3px;
-      flex:1 1 0; min-width:150px; height:118px; cursor:pointer;
-      border-radius: var(--radius-sm); padding:8px 12px;
+      display:flex; flex-direction:column; justify-content:center; gap:4px;
+      flex:1 1 0; min-width:170px; height:150px; cursor:pointer;
+      border-radius: var(--radius-sm); padding:10px 14px;
       transition: background .15s ease;
     }
     .chart-wrap.bars{ flex:1.15 1 0; }
     .chart-wrap:hover{ background: rgba(255,255,255,.04); }
-    .chart-wrap .lbl{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; display:flex; align-items:center; gap:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .chart-wrap .lbl{ font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; display:flex; align-items:center; gap:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .chart-wrap .lbl .material-symbols-outlined{ font-size:14px; opacity:.6; }
-    .chart-wrap svg{ width:100%; height:100px; display:block; }
+    .chart-wrap svg{ width:100%; height:128px; display:block; }
   }
 
   /* ===== Gráfico de barras (evolução do patrimônio, mês a mês) =====
@@ -263,7 +219,11 @@
      desenhado — ver farolHtml() no JS. Ao lado da bolinha agora também
      aparece o % atual que a posição representa do total da guia — é o
      mesmo número que o farol está avaliando contra a meta. */
-  .farol-group{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  /* Largura fixa (em vez de "abraçar" o conteúdo) — é isso que faz a
+     bolinha ficar sempre na mesma posição horizontal em todas as linhas,
+     mesmo quando o texto do percentual ao lado muda de tamanho (ex:
+     "5.2%" vs "12.8%"). Sem isso cada farol ficava num x diferente. */
+  .farol-group{ display:flex; align-items:center; gap:6px; flex-shrink:0; width:66px; }
   .farol-group .farol-pct{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--muted); white-space:nowrap; }
   .farol{
     width:15px; height:15px; border-radius:50%; flex-shrink:0;
@@ -307,21 +267,6 @@
   .result-pill.pos{ color:#2EE6A6; background: rgba(46,230,166,.12); border:1.5px solid rgba(46,230,166,.55); box-shadow:0 0 0 0 rgba(46,230,166,.3); }
   .result-pill.neg{ color:#FF5C7A; background: rgba(255,92,122,.12); border:1.5px solid rgba(255,92,122,.55); box-shadow:0 0 0 0 rgba(255,92,122,.3); }
   .result-pill.sm{ font-size:10.5px; padding:3px 8px; animation:none; height:20px; }
-  /* Bolha mini: usada no cabeçalho JÁ RECOLHIDO (depois que o usuário
-     puxa o scroll pra baixo — ver header.top.collapsed / handleScroll no
-     JS). Precisa de mais especificidade que .bubble e .sm sozinhos pra
-     vencer o padding/height/animation:none deles — por isso o seletor
-     combinado .bubble.sm. Continua "flutuando" (mesma sombra de
-     elevação), só que ainda menor pra caber ao lado do valor mini. */
-  .result-pill.bubble.sm{
-    width:28px; height:28px; padding:0; font-size:8px;
-    border-radius:50%; flex-direction:column; justify-content:center; gap:0;
-    animation: pillPulse 2.6s ease-in-out infinite;
-    box-shadow:
-      0 4px 10px -4px rgba(0,0,0,.6),
-      0 0 0 1px color-mix(in srgb, currentColor 30%, transparent);
-  }
-  .result-pill.bubble.sm .icn-arrow{ font-size:9px; }
   @keyframes pillPulse{
     0%,100%{ box-shadow:0 0 0 0 currentColor; }
     50%{ box-shadow:0 0 10px 1px currentColor; }
@@ -440,7 +385,18 @@
   .pos-id{ display:flex; flex-direction:column; gap:2px; min-width:0; flex:1 1 auto; }
   .pos-id .tk{ font-weight:600; font-size:14.5px; }
   .pos-id .sub{ font-size:11.5px; color: var(--muted); }
-  .pos-nums{ text-align:right; flex-shrink:0; }
+  /* No celular o "· PM R$ 00,00" some daqui (some só da listagem — o
+     preço médio continua editável dentro do card, ao expandir a posição).
+     Ganha espaço na linha e ajuda o farol/valor a ficarem alinhados. */
+  @media (max-width:719px){
+    .pm-inline{ display:none; }
+  }
+  /* min-width fixo (em vez de largura "livre") — junto com o width fixo do
+     .farol-group acima, é o que garante que o farol caia sempre na mesma
+     coluna vertical entre o nome do ativo e o valor, linha após linha.
+     Continua sendo min-width (não width) pra números muito grandes não
+     serem cortados — só nesse caso raro a coluna cresce um pouco. */
+  .pos-nums{ text-align:right; flex-shrink:0; min-width:96px; }
   .pos-nums .val{ font-size:14.5px; font-weight:600; }
   .pos-nums .chg{ font-size:11.5px; margin-top:2px; }
   .pos-detail{ display:none; padding:0 14px 14px; border-top:1px dashed var(--rule); }
@@ -602,7 +558,14 @@
     <div class="head-row-top">
       <div class="brand">
         <span class="eyebrow">Patrimônio consolidado</span>
-        <h1>Carteira</h1>
+        <h1 class="wordmark">
+          <svg class="wm-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="16" cy="16" r="13" stroke="var(--gold)" stroke-width="1.5"/>
+            <path d="M9.5 18.5L13.5 13L17.5 16.5L22.5 10" stroke="var(--gold)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 10H22.5V14.5" stroke="var(--gold)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Carteira
+        </h1>
       </div>
       <div class="head-actions">
         <button class="icon-btn" id="btnBlur" title="Ocultar valores"><span class="material-symbols-outlined" id="blurIcon">visibility</span></button>
@@ -615,7 +578,13 @@
     <div class="head-expanded" id="headExpanded">
       <div class="total-row">
         <div>
-          <div class="total-value mono money" id="totalValue">R$ 0<small>,00</small></div>
+          <!-- O chip de rentabilidade (verde/vermelho, com seta) fica
+               colado ao valor total — substitui a antiga bolha, que não
+               tinha um lugar fixo e "bom" em nenhuma tela. -->
+          <div class="total-value-row">
+            <div class="total-value mono money" id="totalValue">R$ 0<small>,00</small></div>
+            <span class="trend-chip pos" id="trendChip"><span class="material-symbols-outlined icn-arrow">arrow_upward</span>0,00%</span>
+          </div>
           <div class="total-sub">
             <div class="stat">Aportado<b class="mono money" id="totalInvested">R$ 0</b></div>
             <div class="stat">Resultado<b class="mono money" id="totalResultAbs">R$ 0</b></div>
@@ -626,7 +595,8 @@
         </div>
         <!-- Faixa com os dois gráficos: barras (patrimônio mês a mês) e
              linha (tendência de rentabilidade). Só aparece no desktop
-             (ver .charts-row na media query min-width:720px). -->
+             (ver .charts-row na media query min-width:720px) — agora usa
+             todo o espaço que antes ia pra bolha de rentabilidade. -->
         <div class="charts-row" id="chartsRow">
           <div class="chart-wrap bars" id="patrimonioBarWrap" ondblclick="openPatrimonioBarModal()" title="Clique duas vezes pra ver o detalhamento mês a mês">
             <span class="lbl" id="patrimonioBarLbl">Evolução do patrimônio <span class="material-symbols-outlined">open_in_full</span></span>
@@ -637,14 +607,6 @@
             <svg id="rentLineChart" viewBox="0 0 300 100" preserveAspectRatio="none"></svg>
           </div>
         </div>
-        <!-- Bolha com a rentabilidade total atual. O wrapper garante que
-             ela fique sempre centralizada (celular) ou alinhada à direita
-             (desktop), independente da largura dos outros itens da linha.
-             A classe "bubble" ativa o efeito de esfera de vidro (CSS
-             .result-pill.bubble). -->
-        <div class="bubble-wrap" id="bubbleWrap">
-          <span class="result-pill bubble pos" id="totalResultPill"><span class="material-symbols-outlined icn-arrow">arrow_upward</span> 0,00%</span>
-        </div>
       </div>
     </div>
 
@@ -652,7 +614,7 @@
       <svg id="donutMini" width="34" height="34" viewBox="0 0 42 42"></svg>
       <div class="collapsed-nums">
         <span class="cv mono money" id="totalValueMini">R$ 0</span>
-        <span class="result-pill bubble sm pos" id="totalResultPillMini"><span class="material-symbols-outlined icn-arrow" style="font-size:9px">arrow_upward</span> 0%</span>
+        <span class="trend-chip mini pos" id="trendChipMini"><span class="material-symbols-outlined icn-arrow" style="font-size:11px">arrow_upward</span>0%</span>
       </div>
     </div>
   </div>
@@ -688,7 +650,7 @@
    5. DONUT DUPLO (SVG)             -> gráfico de rosca da composição
    6. RENDER: HEADER                -> gráfico de BARRAS (patrimônio por
                                         mês), gráfico de LINHA (rentabili-
-                                        dade), bolha (bubble) de % atual,
+                                        dade), chip de % atual (trend-chip),
                                         renderHeader()
    7. renderTickerMarquee           -> faixa de cotações rolando no topo
    8. RENDER: TABS / PANELS         -> renderMarketPanel (lista de ativos,
@@ -847,18 +809,7 @@ function arrowIcon(positive, size=null){
   return `<span class="material-symbols-outlined icn-arrow"${style}>${positive?'arrow_upward':'arrow_downward'}</span>`;
 }
 
-// Nível de "líquido" do pill de rentabilidade (efeito copo enchendo/
-// esvaziando): mapeia o |%| da rentabilidade pra uma altura de 0–100%.
-// maxEscala = a partir de qual % (em módulo) o copo já fica cheio; acima
-// disso continua mostrando 100%, só não "transborda" visualmente.
-// minFill garante que o copo nunca pareça totalmente vazio (sempre dá
-// pra perceber que há algo ali, mesmo com rentabilidade bem próxima de 0).
-function bubbleFillPct(pct){
-  const maxEscala = 20;
-  const minFill = 14;
-  const bruto = Math.min(100, (Math.abs(pct) / maxEscala) * 100);
-  return minFill + (100 - minFill) * (bruto / 100);
-}
+
 
 /* =========================================================
    DERIVED CALCS
@@ -1445,24 +1396,15 @@ function renderHeader(){
   document.getElementById('totalInvested').textContent = fmtBRLShort(g.investido);
   document.getElementById('totalResultAbs').textContent = (g.resultado>=0?'+':'-') + fmtBRLShort(Math.abs(g.resultado));
 
-  // "bubble" ajusta o tamanho por cima do que .result-pill.pos/.neg já
-  // define (cor, borda, fundo translúcido). A div .bubble-liquid existe
-  // no markup mas fica oculta via CSS (visual agora é fixo, vidro/metal).
-  const pillHtml = () =>
-    `<span class="bubble-liquid" style="height:${bubbleFillPct(g.pct).toFixed(0)}%"></span>`
-    + arrowIcon(g.resultado>=0)
-    + ` ${fmtPct(Math.abs(g.pct)).replace('+','')}`;
-
-  const pill = document.getElementById('totalResultPill');
-  pill.className = 'result-pill bubble ' + (g.resultado>=0?'pos':'neg');
-  pill.innerHTML = pillHtml();
+  // Chip de rentabilidade colado ao valor total (substitui a bolha).
+  const chip = document.getElementById('trendChip');
+  chip.className = 'trend-chip ' + (g.resultado>=0?'pos':'neg');
+  chip.innerHTML = arrowIcon(g.resultado>=0) + fmtPct(Math.abs(g.pct)).replace('+','');
 
   document.getElementById('totalValueMini').textContent = fmtBRLShort(g.atual);
-  const pillMini = document.getElementById('totalResultPillMini');
-  pillMini.className = 'result-pill bubble sm ' + (g.resultado>=0?'pos':'neg');
-  pillMini.innerHTML = `<span class="bubble-liquid" style="height:${bubbleFillPct(g.pct).toFixed(0)}%"></span>`
-    + arrowIcon(g.resultado>=0, 9)
-    + ' ' + fmtPct(Math.abs(g.pct)).replace('+','');
+  const chipMini = document.getElementById('trendChipMini');
+  chipMini.className = 'trend-chip mini ' + (g.resultado>=0?'pos':'neg');
+  chipMini.innerHTML = arrowIcon(g.resultado>=0, 11) + fmtPct(Math.abs(g.pct)).replace('+','');
 
   renderDoubleDonut('donutMini', allocationSegments(g), innerRingSegments(g), 15, 3.4, 8.4, 3.2);
   // Os dois gráficos do cabeçalho: barras (patrimônio por mês) e linha
@@ -1705,7 +1647,7 @@ function renderMarketPanel(cat){
         <div class="pos-head" onclick="toggleRow('${pos.id}')">
           <div class="pos-id">
             <span class="tk mono">${pos.ticker}</span>
-            <span class="sub">${fmtNum(pos.qtd, cat.id==='crypto'?4:0)} un · PM <span class="money">${fmtBRL(pos.precoMedio)}</span></span>
+            <span class="sub">${fmtNum(pos.qtd, cat.id==='crypto'?4:0)} un<span class="pm-inline"> · PM <span class="money">${fmtBRL(pos.precoMedio)}</span></span></span>
           </div>
           ${farol}${reservaBar}
           <div class="pos-nums">
