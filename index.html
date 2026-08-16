@@ -225,6 +225,21 @@
      "5.2%" vs "12.8%"). Sem isso cada farol ficava num x diferente. */
   .farol-group{ display:flex; align-items:center; gap:6px; flex-shrink:0; width:66px; }
   .farol-group .farol-pct{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--muted); white-space:nowrap; }
+  /* Preço teto ao lado do farol: só cabe (e só aparece) no desktop, que
+     tem espaço de sobra — no celular fica oculto e o farol continua só
+     com a bolinha + percentual, como já era. Largura fixa (não apenas o
+     grupo todo) pra cada pedaço — dot, percentual, teto — garante que o
+     alinhamento entre linhas se mantenha mesmo com o teto tendo texto de
+     tamanho variável (ex: "Teto R$ 9,75" vs "Teto R$ 163,00"). */
+  .farol-teto{ display:none; }
+  @media (min-width:720px){
+    .farol-group{ width:182px; }
+    .farol-group .farol-pct{ width:40px; flex-shrink:0; }
+    .farol-teto{
+      display:inline-block; width:110px; flex-shrink:0; text-align:right;
+      font-size:11px; color:var(--muted); white-space:nowrap;
+    }
+  }
   .farol{
     width:15px; height:15px; border-radius:50%; flex-shrink:0;
     background: var(--farol-color);
@@ -886,19 +901,24 @@ function assetFarolStatus(pos, precoAtual, pctDoTotalCategoria){
   if (temPctAlvo) dentroDaMeta = dentroDaMeta && (pctDoTotalCategoria <= pos.pctAporteAlvo);
   return dentroDaMeta ? 'green' : 'red';
 }
-// Gera o HTML do grupo farol + percentual. `status` vem de
-// assetFarolStatus() — se for null (sem meta configurada), retorna string
-// vazia (nem o farol nem o % aparecem na tela). `pctDoTotalCategoria` é o
-// número mostrado ao lado da bolinha.
-function farolHtml(status, pctDoTotalCategoria){
+// Gera o HTML do grupo farol + percentual (+ preço teto, só no desktop —
+// ver .farol-teto no CSS). `status` vem de assetFarolStatus() — se for
+// null (sem meta configurada), retorna string vazia (nada aparece na
+// tela). `pctDoTotalCategoria` é o número mostrado ao lado da bolinha.
+// `valorTeto` é o preço-teto configurado pra essa posição (0/undefined
+// se não configurado — mostra "—" nesse caso, pra manter a coluna com a
+// mesma largura em todas as linhas, com ou sem teto definido).
+function farolHtml(status, pctDoTotalCategoria, valorTeto){
   if (!status) return '';
   const cor = status === 'green' ? '#2EE6A6' : '#FF5C7A';
   const titulo = status === 'green'
     ? 'Dentro da meta (% de aporte e valor teto)'
     : 'Fora da meta: revise o % de aporte alvo ou o valor teto dessa posição';
+  const tetoTxt = (valorTeto>0) ? fmtBRL(valorTeto) : '—';
   return `<span class="farol-group">
     <span class="farol" title="${titulo}" style="--farol-color:${cor}"></span>
     <span class="farol-pct" title="${titulo}">${fmtNum(pctDoTotalCategoria,1)}%</span>
+    <span class="farol-teto mono" title="Preço teto configurado">Teto ${tetoTxt}</span>
   </span>`;
 }
 
@@ -1636,7 +1656,7 @@ function renderMarketPanel(cat){
     // o PREÇO atual (pos.precoAtual) com o teto — não o valor total da
     // posição — e o % que ela representa do total da guia com o alvo. O
     // % que aparece do lado do farol é esse mesmo pctDoTotalCategoria.
-    const farol = mostraAlvoPosicao ? farolHtml(assetFarolStatus(pos, pos.precoAtual, pctDoTotalCategoria), pctDoTotalCategoria) : '';
+    const farol = mostraAlvoPosicao ? farolHtml(assetFarolStatus(pos, pos.precoAtual, pctDoTotalCategoria), pctDoTotalCategoria, pos.valorTeto||0) : '';
     // Barrinha de reserva: só em Renda Fixa, só se esta posição estiver
     // marcada (pos.reservaTipo). Farol e barrinha nunca coexistem na
     // mesma guia, então o mesmo espaço no pos-head serve pros dois.
