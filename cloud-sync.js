@@ -15,12 +15,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 import {
-  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   setDoc,
   getDoc,
-  onSnapshot,
-  enableIndexedDbPersistence
+  getDocFromServer,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 // ===========================
@@ -38,14 +40,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Permite o app funcionar offline e sincronizar quando voltar a internet
-try {
-  enableIndexedDbPersistence(db);
-} catch (e) {
-  // Ignora: acontece se o site estiver aberto em mais de uma aba, por exemplo
-}
+// Cache offline que funciona com o app aberto em várias abas, e conexão por
+// "long polling", que passa por proxies/firewalls de rede corporativa
+// (a conexão em tempo real padrão costuma ser bloqueada no PC do trabalho).
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  experimentalForceLongPolling: true
+});
 
 let pararDeOuvirSnapshot = null;
 
@@ -81,16 +82,21 @@ window.CloudSync = {
     await setDoc(referenciaDoUsuario(uid), dados);
   },
 
+  // Busca direto do servidor (não do cache local). Se estiver offline, cai pro cache.
   async buscarDaNuvem(uid) {
-    const snap = await getDoc(referenciaDoUsuario(uid));
+    let snap;
+    try { snap = await getDocFromServer(referenciaDoUsuario(uid)); }
+    catch (e) { snap = await getDoc(referenciaDoUsuario(uid)); }
     return snap.exists() ? snap.data() : null;
   },
 
-  ouvirMudancas(uid, callback) {
+  // Só repassa mudanças que vieram do servidor (ignora o "eco" do próprio salvamento).
+  ouvirMudancas(uid, callback, aoErrar) {
     if (pararDeOuvirSnapshot) pararDeOuvirSnapshot();
     pararDeOuvirSnapshot = onSnapshot(referenciaDoUsuario(uid), (snap) => {
+      if (snap.metadata.hasPendingWrites) return;
       if (snap.exists()) callback(snap.data());
-    });
+    }, (e) => { if (aoErrar) aoErrar(e); });
   },
 
   pararDeOuvir() {

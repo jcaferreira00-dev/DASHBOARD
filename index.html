@@ -126,7 +126,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const IC={plus:'<path d="M12 5v14M5 12h14"/>',tune:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',eyeoff:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',pencil:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',refresh:'<path d="M20 11a8 8 0 0 0-14-4M4 4v4h4M4 13a8 8 0 0 0 14 4M20 20v-4h-4"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>'};
 const ic=n=>`<svg class="i" viewBox="0 0 24 24">${IC[n]}</svg>`;
 document.querySelectorAll('[data-i]').forEach(b=>b.innerHTML=ic(b.dataset.i));
-let S,TAB='resumo',PGN={},UID=null,SUP=false,L={},AS={v:null,d:365};
+let S,TAB='resumo',PGN={},UID=null,EM='',L={},AS={v:null,d:365};
 const DEF=()=>({categories:[
  {id:'acoes',label:'Ações',color:'#3B9EFF',type:'market',unit:'ação',builtIn:true},
  {id:'fiis',label:'FIIs',color:'#12D18E',type:'market',unit:'FII',builtIn:true},
@@ -157,11 +157,19 @@ function reserva(){let at=0,meta=S.settings.metaReserva||0;
  S.categories.forEach(c=>{if(isM(c))(S.data[c.id].positions||[]).forEach(p=>{if(p.reservaTipo==='emergencia')at+=p.qtd*p.precoAtual});if(!meta&&c.metaReservaEmergencia)meta=c.metaReservaEmergencia});return{at,meta}}
 const rfCat=()=>S.categories.find(isRF)||S.categories.find(isM)||S.categories[0];
 
-async function save(){const g=grand(),h=S.wealthHistory,t=iso();
+async function save(auto){const g=grand(),h=S.wealthHistory,t=iso();
  if(h.length&&h[h.length-1].data===t)h[h.length-1].valor=g;else h.push({data:t,valor:g});if(h.length>180)h.splice(0,h.length-180);
+ if(!auto)S._ts=Date.now();
  localStorage.setItem(KEY,JSON.stringify(S));
- if(UID&&window.CloudSync){try{SUP=true;await CloudSync.salvarNaNuvem(UID,S)}catch(e){}}
+ if(UID&&window.CloudSync){try{await CloudSync.salvarNaNuvem(UID,S);syncOk()}catch(e){syncErr()}}
  render()}
+/* Sincronização: a versão com alteração mais recente (_ts) vence */
+const hm=()=>new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+function syncOk(){$('ctS').textContent='Conectado como '+EM+' · sincronizado às '+hm()}
+function syncErr(){$('ctS').textContent='Conectado como '+EM+' · falha ao sincronizar às '+hm()+'. Tenta de novo ao voltar para esta aba.'}
+async function puxar(u){let n;try{n=await CloudSync.buscarDaNuvem(u)}catch(e){syncErr();return}
+ if(n&&(n._ts||0)>=(S._ts||0)){if(JSON.stringify(n)!==JSON.stringify(S)){S=ens(n);localStorage.setItem(KEY,JSON.stringify(S));render()}syncOk()}
+ else{try{await CloudSync.salvarNaNuvem(u,S);syncOk()}catch(e){syncErr()}}}
 function blur_(){document.body.classList.toggle('bl');const b=document.body.classList.contains('bl');localStorage.setItem('cb',b?1:0);$('eye').innerHTML=ic(b?'eyeoff':'eye');$('eye').title=b?'Mostrar valores':'Ocultar valores'}
 if(localStorage.getItem('cb')==='1')blur_();
 
@@ -300,13 +308,15 @@ async function auth(a){const e=$('ctE').value.trim(),p=$('ctP').value,m=$('ctM')
  if(!window.CloudSync){m.textContent='Sincronização ainda carregando. Tente novamente.';return}
  try{if(a==='sair'){await CloudSync.logout();$('dCt').close();return}if(a==='in')await CloudSync.login(e,p);else await CloudSync.cadastrar(e,p);$('dCt').close()}catch(x){m.textContent='Não foi possível concluir. Verifique e-mail e senha.'}}
 window.addEventListener('cloudsync-pronto',()=>{CloudSync.onAuthStateChanged(async u=>{if(CloudSync.pararDeOuvir)CloudSync.pararDeOuvir();
- if(u){UID=u.uid;$('ctS').textContent='Conectado como '+u.email;const n=await CloudSync.buscarDaNuvem(u.uid).catch(()=>null);if(n)S=ens(n);else await save();render();
-  CloudSync.ouvirMudancas(u.uid,d=>{if(SUP){SUP=false;return}S=ens(d);localStorage.setItem(KEY,JSON.stringify(S));render()})}
- else{UID=null;$('ctS').textContent='Dados salvos apenas neste aparelho.';render()}})});
+ if(u){UID=null;EM=u.email;$('ctS').textContent='Conectado como '+EM+' · sincronizando...';await puxar(u.uid);UID=u.uid;render();
+  CloudSync.ouvirMudancas(u.uid,d=>{if((d._ts||0)<(S._ts||0))return;S=ens(d);localStorage.setItem(KEY,JSON.stringify(S));render();syncOk()},()=>syncErr())}
+ else{UID=null;EM='';$('ctS').textContent='Dados salvos apenas neste aparelho.';render()}})});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&UID)puxar(UID)});
+addEventListener('online',()=>{if(UID)puxar(UID)});
 $('ctS').textContent='Dados salvos apenas neste aparelho.';
 if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 render();
-if(!S.settings.taxas.at||Date.now()-S.settings.taxas.at>432e5)taxas().then(ok=>ok&&save());
+if(!S.settings.taxas.at||Date.now()-S.settings.taxas.at>432e5)taxas().then(ok=>ok&&save(true));
 </script>
 </body>
 </html>
