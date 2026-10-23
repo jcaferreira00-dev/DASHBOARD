@@ -28,6 +28,13 @@ button.p{background:var(--acc);border-color:var(--acc);color:#fff}
 @media(prefers-color-scheme:dark){button.p{color:#0f1512}}
 button.g{border:0;background:none;color:var(--mut);padding:6px 8px}
 .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ib{width:36px;height:36px;padding:0;display:inline-grid;place-items:center;border:0;background:none;color:var(--mut);border-radius:8px}
+.ib:hover{background:var(--bg);color:var(--ink)}.ib.d:hover{color:var(--dn)}.ib.on{color:var(--acc)}.ib:disabled{opacity:.3;cursor:default}
+.ib.p{width:40px;height:40px;border-radius:50%;background:var(--acc);color:#fff}
+@media(prefers-color-scheme:dark){.ib.p{color:#0f1512}}
+svg.i,.ib svg,.icn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform:none}
+.icn{display:inline-flex;align-items:center;gap:6px}.icn span{display:inline-flex}
+.dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.dh h3{margin:0}
 nav{display:flex;gap:4px;overflow-x:auto;margin-top:16px;border-bottom:1px solid var(--line);scrollbar-width:none}
 nav button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--mut);padding:10px 14px;white-space:nowrap}
 nav button.on{color:var(--ink);border-color:var(--gold);font-weight:600}
@@ -91,8 +98,8 @@ dialog h3{font:600 20px Georgia,serif;margin:0 0 14px}
 <body>
 <header><div class="w">
   <div class="top">
-    <div><div class="lb">Patrimônio consolidado</div><div class="tot num m" id="tot"></div></div>
-    <div class="acts"><button class="g" id="eye" onclick="blur_()">Ocultar valores</button><button class="g" onclick="$('dAj').showModal();ajUI()">Ajustes</button><button class="g" id="cta" onclick="$('dCt').showModal()">Conta</button><button class="p" onclick="openLan()">Novo lançamento</button></div>
+    <div><div class="lb">Patrimônio consolidado, sem FGTS</div><div class="tot num m" id="tot"></div></div>
+    <div class="acts"><button class="ib" id="eye" onclick="blur_()" title="Ocultar valores" aria-label="Ocultar valores" data-i="eye"></button><button class="ib" title="Ajustes" aria-label="Ajustes" data-i="tune" onclick="$('dAj').showModal();ajUI()"></button><button class="ib" id="cta" title="Conta e sincronização" aria-label="Conta" data-i="user" onclick="$('dCt').showModal()"></button><button class="p icn" onclick="openLan()" title="Novo lançamento"><span data-i="plus"></span>Lançar</button></div>
   </div>
   <nav id="tabs"></nav>
 </div></header>
@@ -101,11 +108,11 @@ dialog h3{font:600 20px Georgia,serif;margin:0 0 14px}
 <dialog id="dLan"></dialog>
 <dialog id="dDet"></dialog>
 <dialog id="dAj"></dialog>
-<dialog id="dCt"><h3>Conta e sincronização</h3>
+<dialog id="dCt"><div class="dh"><h3>Conta e sincronização</h3><button class="ib" onclick="$('dCt').close()" title="Fechar" aria-label="Fechar" data-i="x"></button></div>
 <div id="ctS" class="note" style="margin:0 0 12px"></div>
 <label>E-mail<input id="ctE" type="email"></label><label>Senha<input id="ctP" type="password"></label>
 <div id="ctM" class="note" style="color:var(--dn);margin:0 0 8px"></div>
-<div class="ac"><button onclick="$('dCt').close()">Fechar</button><button onclick="auth('sair')">Sair</button><button onclick="auth('cad')">Criar conta</button><button class="p" onclick="auth('in')">Entrar</button></div></dialog>
+<div class="ac"><button onclick="auth('sair')">Sair</button><button onclick="auth('cad')">Criar conta</button><button class="p" onclick="auth('in')">Entrar</button></div></dialog>
 
 <script type="module" src="cloud-sync.js"></script>
 <script>
@@ -116,6 +123,9 @@ const N=(v,d=2)=>(v||0).toLocaleString('pt-BR',{maximumFractionDigits:d});
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const iso=()=>new Date().toISOString().slice(0,10);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const IC={plus:'<path d="M12 5v14M5 12h14"/>',tune:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',eyeoff:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',pencil:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',refresh:'<path d="M20 11a8 8 0 0 0-14-4M4 4v4h4M4 13a8 8 0 0 0 14 4M20 20v-4h-4"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>'};
+const ic=n=>`<svg class="i" viewBox="0 0 24 24">${IC[n]}</svg>`;
+document.querySelectorAll('[data-i]').forEach(b=>b.innerHTML=ic(b.dataset.i));
 let S,TAB='resumo',PGN={},UID=null,SUP=false,L={},AS={v:null,d:365};
 const DEF=()=>({categories:[
  {id:'acoes',label:'Ações',color:'#3B9EFF',type:'market',unit:'ação',builtIn:true},
@@ -138,11 +148,11 @@ function items(c){const d=S.data[c.id]||{};
  if(isM(c))return(d.positions||[]).map(p=>({id:p.id,nome:p.ticker,at:p.qtd*p.precoAtual,inv:p.qtd*p.precoMedio,sub:isRF(c)?(p.reservaTipo?'Reserva de '+(p.reservaTipo==='emergencia'?'emergência':'oportunidade'):''):N(p.qtd,4)+' un · PM '+R(p.precoMedio)})).filter(x=>x.at>0||x.inv>0);
  return(d.items||[]).map(i=>{let inv=0;(d.moves||[]).filter(m=>m.itemId===i.id).forEach(m=>inv+=m.tipo==='entrada'?m.valor:-m.valor);return{id:i.id,nome:i.nome,at:i.saldoAtual||0,inv,sub:i.subtitulo||''}})}
 const tot=c=>items(c).reduce((s,x)=>s+x.at,0);
-const grand=()=>S.categories.reduce((s,c)=>s+tot(c),0);
+const grand=()=>S.categories.filter(c=>c.id!=='fgts').reduce((s,c)=>s+tot(c),0);
 function aportes(){const y=new Date().getFullYear()+'';let t=0,pg=0;
  S.categories.forEach(c=>{if(c.id==='fgts')return;const d=S.data[c.id]||{};
   if(isM(c))(d.history||[]).forEach(h=>{if(h.tipo==='compra'&&h.data.startsWith(y))t+=h.qtd*h.preco});
-  else(d.moves||[]).forEach(m=>{if(m.tipo==='entrada'&&m.data.startsWith(y)){t+=m.valor;if(c.id==='previdencia')pg+=m.valor}})});return{t,pg}}
+  else(d.moves||[]).forEach(m=>{if(m.tipo==='entrada'&&m.data.startsWith(y)){t+=m.valor;if(c.id==='previdencia')pg+=m.valor}})});const mp=S.settings.pgblAno;if(mp&&mp.ano===+y&&mp.valor!=null){t+=mp.valor-pg;pg=mp.valor}return{t,pg}}
 function reserva(){let at=0,meta=S.settings.metaReserva||0;
  S.categories.forEach(c=>{if(isM(c))(S.data[c.id].positions||[]).forEach(p=>{if(p.reservaTipo==='emergencia')at+=p.qtd*p.precoAtual});if(!meta&&c.metaReservaEmergencia)meta=c.metaReservaEmergencia});return{at,meta}}
 const rfCat=()=>S.categories.find(isRF)||S.categories.find(isM)||S.categories[0];
@@ -152,7 +162,7 @@ async function save(){const g=grand(),h=S.wealthHistory,t=iso();
  localStorage.setItem(KEY,JSON.stringify(S));
  if(UID&&window.CloudSync){try{SUP=true;await CloudSync.salvarNaNuvem(UID,S)}catch(e){}}
  render()}
-function blur_(){document.body.classList.toggle('bl');const b=document.body.classList.contains('bl');localStorage.setItem('cb',b?1:0);$('eye').textContent=b?'Mostrar valores':'Ocultar valores'}
+function blur_(){document.body.classList.toggle('bl');const b=document.body.classList.contains('bl');localStorage.setItem('cb',b?1:0);$('eye').innerHTML=ic(b?'eyeoff':'eye');$('eye').title=b?'Mostrar valores':'Ocultar valores'}
 if(localStorage.getItem('cb')==='1')blur_();
 
 /* ---------- Tela ---------- */
@@ -162,29 +172,29 @@ function render(){
  if(!tabs.some(t=>t[0]===TAB))TAB='resumo';
  $('tabs').innerHTML=tabs.map(t=>`<button class="${t[0]===TAB?'on':''}" onclick="go('${t[0]}')">${esc(t[1])}</button>`).join('');
  $('v').innerHTML=TAB==='resumo'?vResumo():TAB==='assist'?vAssist():vGuia(cat(TAB));
- $('cta').textContent=UID?'Sincronizado':'Conta'}
+ $('cta').classList.toggle('on',!!UID)}
 function go(t){TAB=t;render();$('v').parentNode.scrollTop=0}
 function donut(sg,t){let o=0,h='';sg.forEach(s=>{const f=t?s.v/t*100:0;h+=`<circle r="15.915" cx="21" cy="21" fill="none" stroke="${s.c}" stroke-width="5" stroke-dasharray="${f} ${100-f}" stroke-dashoffset="${-o}"/>`;o+=f});
  return`<svg viewBox="0 0 42 42" class="dn"><circle r="15.915" cx="21" cy="21" fill="none" stroke="var(--line)" stroke-width="5"/>${h}</svg>`}
-function vResumo(){const g=grand(),sg=S.categories.map(c=>({c:c.color,v:tot(c),n:c.label,id:c.id})).filter(s=>s.v>0).sort((a,b)=>b.v-a.v);
+function vResumo(){const g=grand(),fg=cat('fgts')?tot(cat('fgts')):0,sg=S.categories.filter(c=>c.id!=='fgts').map(c=>({c:c.color,v:tot(c),n:c.label,id:c.id})).filter(s=>s.v>0).sort((a,b)=>b.v-a.v);
  const a=aportes(),rs=reserva(),s=S.settings,lim=s.renda*.12,tx=s.taxas;
  const goal=(t,v,m,note,cl)=>`<div class="goal"><div class="h"><span>${t}</span><span class="num m">${R(v)}${m?' <span class="mut">/ '+R(m)+'</span>':''}</span></div><div class="bar ${cl||''}"><i style="width:${m?Math.min(100,v/m*100):0}%"></i></div><div class="mut" style="font-size:12.5px">${note}</div></div>`;
- return`<div class="grid"><div class="card"><h4>Onde está o seu dinheiro</h4>${g?`<div class="sum">${donut(sg,g)}<div class="lg">${sg.map(x=>`<button class="lgr" onclick="go('${x.id}')"><i class="dot" style="background:${x.c}"></i><span class="n">${esc(x.n)}</span><span class="num m">${R(x.v)}</span><span class="mut num" style="width:48px;text-align:right">${P(x.v/g*100)}</span></button>`).join('')}</div></div>`:`<div class="emp">Nenhum valor registrado ainda.<br><br><button class="p" onclick="openLan()">Fazer o primeiro lançamento</button></div>`}</div>
+ return`<div class="grid"><div class="card"><h4>Onde está o seu dinheiro</h4>${g?`<div class="sum">${donut(sg,g)}<div class="lg">${sg.map(x=>`<button class="lgr" onclick="go('${x.id}')"><i class="dot" style="background:${x.c}"></i><span class="n">${esc(x.n)}</span><span class="num m">${R(x.v)}</span><span class="mut num" style="width:48px;text-align:right">${P(x.v/g*100)}</span></button>`).join('')}${fg>0?`<button class="lgr mut" onclick="go('fgts')"><i class="dot" style="border:1px solid var(--mut)"></i><span class="n">FGTS (fora do total)</span><span class="num m">${R(fg)}</span><span style="width:48px"></span></button>`:''}</div></div>`:`<div class="emp">Nenhum valor registrado ainda.<br><br><button class="p" onclick="openLan()">Fazer o primeiro lançamento</button></div>`}</div>
  <div style="display:grid;gap:14px"><div class="card"><h4>Metas</h4>
  ${goal('Aportes no ano',a.t,s.metaAnual,a.t>=s.metaAnual?'Meta atingida':'Faltam '+R(Math.max(0,s.metaAnual-a.t)))}
- ${goal('PGBL dedutível',a.pg,lim,lim?'Espaço restante: '+R(Math.max(0,lim-a.pg))+' · economia estimada '+R(Math.min(a.pg,lim)*s.aliq/100):'Informe a renda anual em Ajustes','g')}
+ ${goal('PGBL aportado em '+new Date().getFullYear(),a.pg,lim,lim?'Espaço restante: '+R(Math.max(0,lim-a.pg))+' · economia estimada '+R(Math.min(a.pg,lim)*s.aliq/100):'Informe a renda anual em Ajustes','g')}
  ${rs.meta?goal('Reserva de emergência',rs.at,rs.meta,rs.at>=rs.meta?'Completa':'Faltam '+R(rs.meta-rs.at)):''}</div>
  <div class="card"><h4>Taxas de mercado</h4><div class="two"><div><div class="lb">CDI</div><b class="sr">${N(tx.cdi)}%</b></div><div><div class="lb">Selic meta</div><b class="sr">${tx.selic?N(tx.selic)+'%':'-'}</b></div></div>
- <div class="note" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${tx.em?'Banco Central, '+tx.em:'Sem atualização'}${tx.ipca?' · IPCA 12m '+N(tx.ipca)+'%':''}</span><button class="g" id="bt" onclick="atualizar()">Atualizar taxas e cotações</button></div></div></div></div>`}
+ <div class="note" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${tx.em?'Banco Central, '+tx.em:'Sem atualização'}${tx.ipca?' · IPCA 12m '+N(tx.ipca)+'%':''}</span><button class="ib" id="bt" onclick="atualizar()" title="Atualizar taxas e cotações" aria-label="Atualizar taxas e cotações">${ic('refresh')}</button></div></div></div></div>`}
 function vGuia(c){const it=items(c).sort((a,b)=>b.at-a.at),t=it.reduce((s,x)=>s+x.at,0),inv=it.reduce((s,x)=>s+(x.inv||0),0);
  const pn=PGN[c.id]||0,per=5,pages=Math.max(1,Math.ceil(it.length/per)),pg=Math.min(pn,pages-1);
  const top=it.slice(0,5),out=it.slice(5).reduce((s,x)=>s+x.at,0);
  const seg=top.map((x,i)=>({n:x.nome,v:x.at,o:1-i*.15}));if(out>0)seg.push({n:'Outros',v:out,o:.2});
- let h=`<div class="top" style="margin-bottom:6px"><div><div class="lb">${esc(c.label)}</div><div class="tot num m">${R(t)}</div>${inv>0?`<div class="${t>=inv?'up':'dnc'} num m">${t>=inv?'+':''}${R(t-inv)} · ${P((t-inv)/inv*100)}</div>`:''}</div><button class="p" onclick="openLan('${c.id}')">Lançar em ${esc(c.label)}</button></div>`;
+ let h=`<div class="top" style="margin-bottom:6px"><div><div class="lb">${esc(c.label)}</div><div class="tot num m">${R(t)}</div>${inv>0?`<div class="${t>=inv?'up':'dnc'} num m">${t>=inv?'+':''}${R(t-inv)} · ${P((t-inv)/inv*100)}</div>`:''}</div><button class="ib p" onclick="openLan('${c.id}')" title="Novo lançamento em ${esc(c.label)}" aria-label="Novo lançamento">${ic('plus')}</button></div>`;
  if(!it.length)return h+`<div class="card emp">Nada registrado nesta guia.</div>`;
  h+=`<div class="card"><div class="stack">${seg.map(s=>`<i style="width:${s.v/t*100}%;background:${c.color};opacity:${s.o}"></i>`).join('')}</div><div class="mut" style="font-size:12.5px;display:flex;gap:14px;flex-wrap:wrap">${seg.map(s=>`<span>${esc(s.n)} ${P(s.v/t*100)}</span>`).join('')}</div></div><div class="card" style="margin-top:14px;padding:6px 14px 14px">`;
  it.slice(pg*per,pg*per+per).forEach(x=>{const r=x.inv>0?x.at-x.inv:null;h+=`<div class="row" onclick="openDet('${c.id}','${x.id}')"><div class="n"><b>${esc(x.nome)}</b><div class="mut" style="font-size:12.5px">${esc(x.sub)}</div></div><div class="mut num" style="width:52px;text-align:right">${P(x.at/t*100)}</div><div class="r"><div class="num m">${R(x.at)}</div>${r!==null?`<div class="num m ${r>=0?'up':'dnc'}" style="font-size:12.5px">${r>=0?'+':''}${R(r)}</div>`:''}</div></div>`});
- if(pages>1)h+=`<div class="pg"><button class="g" ${pg?'':'disabled'} onclick="PGN['${c.id}']=${pg-1};render()">Anterior</button>${pg+1} de ${pages}<button class="g" ${pg<pages-1?'':'disabled'} onclick="PGN['${c.id}']=${pg+1};render()">Próxima</button></div>`;
+ if(pages>1)h+=`<div class="pg"><button class="ib" ${pg?'':'disabled'} onclick="PGN['${c.id}']=${pg-1};render()" title="Anterior" aria-label="Anterior">${ic('left')}</button>${pg+1} de ${pages}<button class="ib" ${pg<pages-1?'':'disabled'} onclick="PGN['${c.id}']=${pg+1};render()" title="Próxima" aria-label="Próxima">${ic('right')}</button></div>`;
  return h+'</div>'}
 
 /* ---------- Assistente ---------- */
@@ -209,14 +219,14 @@ function vAssist(){const s=S.settings,v=AS.v==null?(s.livre||0):AS.v,d=AS.d,a=ap
 function openLan(c,op,item,val){L={cat:c||(TAB!=='resumo'&&TAB!=='assist'?TAB:S.categories[0].id),op:op||'in',item:item||'',val:val||''};drawLan();$('dLan').showModal()}
 function drawLan(){const c=cat(L.cat),m=isM(c),rf=isRF(c),d=S.data[c.id];
  const ops=m?[['in',rf?'Aplicação':'Compra'],['out',rf?'Resgate':'Venda']]:[['in',c.entradaLabel||'Entrada'],['out',c.saidaLabel||'Saída']];
- let h=`<h3>Novo lançamento</h3><div class="chips">${S.categories.map(x=>`<button class="chip ${x.id===L.cat?'on':''}" onclick="L.cat='${x.id}';L.item='';drawLan()">${esc(x.label)}</button>`).join('')}</div>
+ let h=`<div class="dh"><h3>Novo lançamento</h3><button class="ib" onclick="$('dLan').close()" title="Fechar" aria-label="Fechar">${ic('x')}</button></div><div class="chips">${S.categories.map(x=>`<button class="chip ${x.id===L.cat?'on':''}" onclick="L.cat='${x.id}';L.item='';drawLan()">${esc(x.label)}</button>`).join('')}</div>
  <div class="seg">${ops.map(o=>`<button class="${L.op===o[0]?'on':''}" onclick="L.op='${o[0]}';drawLan()">${o[1]}</button>`).join('')}</div>`;
  if(m){const p=(d.positions||[]).find(x=>x.id===L.item);
   h+=`<label>${rf?'Nome (ex.: CDB Banco X 110% CDI)':'Código (ex.: PETR4)'}<input id="lT" list="dl" value="${p?esc(p.ticker):''}" autocomplete="off"><datalist id="dl">${(d.positions||[]).map(x=>`<option value="${esc(x.ticker)}">`).join('')}</datalist></label>`;
   h+=rf?`<label>Valor (R$)<input id="lV" type="number" step="0.01" value="${L.val}"></label>`:`<div class="two"><label>Quantidade<input id="lQ" type="number" step="any"></label><label>Preço unitário (R$)<input id="lP" type="number" step="0.01"></label></div>`}
  else{const its=d.items||[];
   h+=`<label>Conta<select id="lI" onchange="$('lN').style.display=this.value==='__n'?'block':'none'">${its.map(i=>`<option value="${i.id}" ${i.id===L.item?'selected':''}>${esc(i.nome)}</option>`).join('')}<option value="__n" ${its.length?'':'selected'}>Nova conta</option></select></label><label id="lN" style="display:${its.length?'none':'block'}">Nome da nova conta<input id="lT"></label><label>Valor (R$)<input id="lV" type="number" step="0.01" value="${L.val}"></label>`}
- h+=`<label>Data<input id="lD" type="date" value="${iso()}"></label><div class="ac"><button onclick="$('dLan').close()">Cancelar</button><button class="p" onclick="saveLan()">Salvar</button></div>`;
+ h+=`<label>Data<input id="lD" type="date" value="${iso()}"></label><div class="ac"><button class="p" onclick="saveLan()">Salvar</button></div>`;
  $('dLan').innerHTML=h}
 function recalc(d,pid){let q=0,pm=0;(d.history||[]).filter(h=>h.positionId===pid).sort((a,b)=>a.data.localeCompare(b.data)||a.id.localeCompare(b.id)).forEach(h=>{if(h.tipo==='compra'){const n=q+h.qtd;pm=n>0?(q*pm+h.qtd*h.preco)/n:0;q=n}else{q=Math.max(0,q-h.qtd);if(!q)pm=0}});const p=d.positions.find(x=>x.id===pid);p.qtd=q;p.precoMedio=pm}
 async function saveLan(){const c=cat(L.cat),d=S.data[c.id],rf=isRF(c),data=$('lD').value,v=parseFloat($('lV')&&$('lV').value),out=L.op==='out';let q2=null;
@@ -236,12 +246,29 @@ async function saveLan(){const c=cat(L.cat),d=S.data[c.id],rf=isRF(c),data=$('lD
 /* ---------- Detalhe ---------- */
 function openDet(cid,id){const c=cat(cid),d=S.data[cid],m=isM(c),rf=isRF(c);let h='';
  if(m){const p=d.positions.find(x=>x.id===id),inv=p.qtd*p.precoMedio,at=p.qtd*p.precoAtual,r=at-inv;
-  h=`<h3>${esc(p.ticker)}</h3><div class="st"><span>Valor atual</span><b class="num m">${R(at)}</b></div><div class="st"><span>Investido</span><span class="num m">${R(inv)}</span></div><div class="st"><span>Resultado</span><span class="num m ${r>=0?'up':'dnc'}">${r>=0?'+':''}${R(r)} (${P(inv?r/inv*100:0)})</span></div>`+(rf?`<div class="st"><span>Reserva</span><span></span></div>`:`<div class="st"><span>Quantidade · preço médio · preço atual</span><span class="num m">${N(p.qtd,4)} · ${R(p.precoMedio)} · ${R(p.precoAtual)}</span></div>`);
+  h=dh(esc(p.ticker),cid,id)+`<div class="st"><span>Valor atual</span><b class="num m">${R(at)}</b></div><div class="st"><span>Investido</span><span class="num m">${R(inv)}</span></div><div class="st"><span>Resultado</span><span class="num m ${r>=0?'up':'dnc'}">${r>=0?'+':''}${R(r)} (${P(inv?r/inv*100:0)})</span></div>`+(rf?`<div class="st"><span>Reserva</span><span></span></div>`:`<div class="st"><span>Quantidade · preço médio · preço atual</span><span class="num m">${N(p.qtd,4)} · ${R(p.precoMedio)} · ${R(p.precoAtual)}</span></div>`);
   if(rf)h+=`<label>Marcar como<select onchange="marca('${cid}','${id}',this.value)"><option value="">Sem marcação</option><option value="emergencia" ${p.reservaTipo==='emergencia'?'selected':''}>Reserva de emergência</option><option value="oportunidade" ${p.reservaTipo==='oportunidade'?'selected':''}>Reserva de oportunidade</option></select></label><label>Atualizar valor atual (R$)<div style="display:flex;gap:8px"><input id="dV" type="number" step="0.01" value="${at.toFixed(2)}"><button onclick="setAt('${cid}','${id}')">Salvar</button></div></label>`;
-  h+=`<div class="ac"><button class="g" onclick="del('${cid}','${id}')">Excluir</button><button onclick="$('dDet').close()">Fechar</button><button onclick="$('dDet').close();openLan('${cid}','out','${id}')">${rf?'Resgatar':'Vender'}</button><button class="p" onclick="$('dDet').close();openLan('${cid}','in','${id}')">${rf?'Aplicar mais':'Comprar'}</button></div>`}
+  h+=`<div class="ac" style="justify-content:space-between"><button class="ib d" onclick="del('${cid}','${id}')" title="Excluir" aria-label="Excluir">${ic('trash')}</button><span class="acts"><button onclick="$('dDet').close();openLan('${cid}','out','${id}')">${rf?'Resgatar':'Vender'}</button><button class="p" onclick="$('dDet').close();openLan('${cid}','in','${id}')">${rf?'Aplicar mais':'Comprar'}</button></span></div>`}
  else{const i=d.items.find(x=>x.id===id);
-  h=`<h3>${esc(i.nome)}</h3><div class="st"><span>Saldo atual</span><b class="num m">${R(i.saldoAtual)}</b></div><label style="margin-top:14px">Corrigir saldo atual (R$)<div style="display:flex;gap:8px"><input id="dV" type="number" step="0.01" value="${(i.saldoAtual||0).toFixed(2)}"><button onclick="setSaldo('${cid}','${id}')">Salvar</button></div></label><div class="ac"><button class="g" onclick="del('${cid}','${id}')">Excluir</button><button onclick="$('dDet').close()">Fechar</button><button class="p" onclick="$('dDet').close();openLan('${cid}','in','${id}')">${esc(c.entradaLabel||'Entrada')}</button></div>`}
- $('dDet').innerHTML=h;$('dDet').showModal()}
+  h=dh(esc(i.nome),cid,id)+`<div class="st"><span>Saldo atual</span><b class="num m">${R(i.saldoAtual)}</b></div><label style="margin-top:14px">Corrigir saldo atual (R$)<div style="display:flex;gap:8px"><input id="dV" type="number" step="0.01" value="${(i.saldoAtual||0).toFixed(2)}"><button onclick="setSaldo('${cid}','${id}')">Salvar</button></div></label><div class="ac" style="justify-content:space-between"><button class="ib d" onclick="del('${cid}','${id}')" title="Excluir" aria-label="Excluir">${ic('trash')}</button><button class="p" onclick="$('dDet').close();openLan('${cid}','in','${id}')">${esc(c.entradaLabel||'Entrada')}</button></div>`}
+ $('dDet').innerHTML=h;if(!$('dDet').open)$('dDet').showModal()}
+function dh(t,cid,id){return`<div class="dh"><h3>${t}</h3><div><button class="ib" onclick="openEdit('${cid}','${id}')" title="Corrigir dados" aria-label="Corrigir dados">${ic('pencil')}</button><button class="ib" onclick="$('dDet').close()" title="Fechar" aria-label="Fechar">${ic('x')}</button></div></div>`}
+const rd=v=>Math.round(v*1e4)/1e4;
+function openEdit(cid,id){const c=cat(cid),d=S.data[cid],rf=isRF(c),f=(i,t,v,st)=>`<label>${t}<input id="${i}" type="number" step="${st||'any'}" value="${v}"></label>`;let h;
+ if(isM(c)){const p=d.positions.find(x=>x.id===id);
+  h=`<div class="dh"><h3>Corrigir dados</h3><button class="ib" onclick="openDet('${cid}','${id}')" title="Voltar" aria-label="Voltar">${ic('left')}</button></div><label>${rf?'Nome':'Código'}<input id="eT" value="${esc(p.ticker)}"></label>`+(rf?`<div class="two">${f('eI','Valor aplicado (R$)',rd(p.qtd*p.precoMedio),.01)}${f('eA','Valor atual (R$)',rd(p.qtd*p.precoAtual),.01)}</div>`:`<div class="two">${f('eQ','Quantidade',rd(p.qtd))}${f('eM','Preço médio (R$)',rd(p.precoMedio),.01)}</div>${f('eA','Preço atual (R$)',rd(p.precoAtual),.01)}`)+`<div class="note" style="margin:0 0 12px">Ao alterar ${rf?'o valor aplicado':'a quantidade ou o preço médio'}, o histórico de compras deste ativo é substituído por um único lançamento com os valores corrigidos.</div>`}
+ else{const i=d.items.find(x=>x.id===id);
+  h=`<div class="dh"><h3>Corrigir dados</h3><button class="ib" onclick="openDet('${cid}','${id}')" title="Voltar" aria-label="Voltar">${ic('left')}</button></div><label>Nome<input id="eT" value="${esc(i.nome)}"></label>${f('eA','Saldo atual (R$)',rd(i.saldoAtual||0),.01)}`}
+ h+=`<div class="ac"><button class="p" onclick="saveEdit('${cid}','${id}')">Salvar</button></div>`;$('dDet').innerHTML=h}
+function saveEdit(cid,id){const c=cat(cid),d=S.data[cid],rf=isRF(c),g=i=>parseFloat($(i).value),t=$('eT').value.trim();if(!t)return alert('Informe o nome.');
+ if(isM(c)){const p=d.positions.find(x=>x.id===id);let q,m,a;
+  if(rf){const I=g('eI'),A=g('eA');if(!(I>=0)||!(A>=0))return alert('Valores inválidos.');q=(I>0||A>0)?1:0;m=I;a=A}
+  else{q=g('eQ');m=g('eM');a=g('eA');if(!(q>=0)||!(m>=0)||!(a>=0))return alert('Valores inválidos.')}
+  if(Math.abs(q-p.qtd)>1e-9||Math.abs(m-p.precoMedio)>1e-6){const hs=d.history.filter(h=>h.positionId===id).sort((x,y)=>x.data.localeCompare(y.data)),dt=hs.length?hs[0].data:iso();
+   d.history=d.history.filter(h=>h.positionId!==id);if(q>0)d.history.push({id:uid(),positionId:id,tipo:'compra',qtd:q,preco:m,data:dt});p.qtd=q;p.precoMedio=m}
+  p.ticker=t;p.precoAtual=rf?(p.qtd?a/p.qtd:0):a}
+ else{const v=g('eA');if(!(v>=0))return alert('Valor inválido.');const i=d.items.find(x=>x.id===id);i.nome=t;i.saldoAtual=v}
+ $('dDet').close();save()}
 function marca(c,id,v){const p=S.data[c].positions.find(x=>x.id===id);if(v)p.reservaTipo=v;else delete p.reservaTipo;save()}
 function setAt(c,id){const v=parseFloat($('dV').value),p=S.data[c].positions.find(x=>x.id===id);if(!(v>=0)||!p.qtd)return;p.precoAtual=v/p.qtd;$('dDet').close();save()}
 function setSaldo(c,id){const v=parseFloat($('dV').value);if(!(v>=0))return;S.data[c].items.find(x=>x.id===id).saldoAtual=v;$('dDet').close();save()}
@@ -250,11 +277,11 @@ function del(cid,id){if(!confirm('Excluir este item e o histórico dele?'))retur
  $('dDet').close();save()}
 
 /* ---------- Ajustes ---------- */
-function ajUI(){const s=S.settings,f=(i,t,v,st)=>`<label>${t}<input id="${i}" type="number" step="${st||1}" value="${v||''}"></label>`;
- $('dAj').innerHTML=`<h3>Ajustes</h3>${f('aM','Meta anual de aportes (R$)',s.metaAnual,100)}${f('aR','Renda bruta tributável anual (R$), para o limite do PGBL',s.renda,100)}<div class="two">${f('aA','Alíquota marginal de IR (%)',s.aliq,.5)}${f('aE','Meta da reserva de emergência (R$)',s.metaReserva,100)}</div>${f('aL','Valor que costuma ficar disponível (R$)',s.livre,100)}<label>Chaves da API de cotações (separadas por vírgula)<input id="aT" value="${esc((s.brapiTokens||[]).join(','))}"></label>
+function ajUI(){const s=S.settings,ano=new Date().getFullYear(),f=(i,t,v,st)=>`<label>${t}<input id="${i}" type="number" step="${st||1}" value="${v||''}"></label>`;
+ $('dAj').innerHTML=`<div class="dh"><h3>Ajustes</h3><button class="ib" onclick="$('dAj').close()" title="Fechar" aria-label="Fechar">${ic('x')}</button></div>${f('aM','Meta anual de aportes (R$)',s.metaAnual,100)}${f('aR','Renda bruta tributável anual (R$), para o limite do PGBL',s.renda,100)}${f('aP','Aportes em PGBL em '+ano+' (R$). Vazio: usa os lançamentos de '+ano+' na guia Previdência',s.pgblAno&&s.pgblAno.ano===ano?s.pgblAno.valor:'',.01)}<div class="two">${f('aA','Alíquota marginal de IR (%)',s.aliq,.5)}${f('aE','Meta da reserva de emergência (R$)',s.metaReserva,100)}</div>${f('aL','Valor que costuma ficar disponível (R$)',s.livre,100)}<label>Chaves da API de cotações (separadas por vírgula)<input id="aT" value="${esc((s.brapiTokens||[]).join(','))}"></label>
  <div class="ac" style="justify-content:flex-start"><button onclick="exp()">Exportar backup</button><button onclick="$('aF').click()">Importar backup</button><input id="aF" type="file" accept=".json" hidden onchange="imp(this)"></div>
- <div class="ac" style="margin-top:14px"><button onclick="$('dAj').close()">Cancelar</button><button class="p" onclick="ajSave()">Salvar</button></div>`}
-function ajSave(){const s=S.settings,g=i=>parseFloat($(i).value)||0;Object.assign(s,{metaAnual:g('aM'),renda:g('aR'),aliq:g('aA'),metaReserva:g('aE'),livre:g('aL'),brapiTokens:$('aT').value.split(',').map(x=>x.trim()).filter(Boolean)});AS.v=null;$('dAj').close();save()}
+ <div class="ac" style="margin-top:14px"><button class="p" onclick="ajSave()">Salvar</button></div>`}
+function ajSave(){const s=S.settings,g=i=>parseFloat($(i).value)||0;Object.assign(s,{metaAnual:g('aM'),renda:g('aR'),aliq:g('aA'),metaReserva:g('aE'),livre:g('aL'),brapiTokens:$('aT').value.split(',').map(x=>x.trim()).filter(Boolean)});const pv=$('aP').value;if(pv==='')delete s.pgblAno;else s.pgblAno={ano:new Date().getFullYear(),valor:parseFloat(pv)||0};AS.v=null;$('dAj').close();save()}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='carteira-backup-'+iso()+'.json';a.click()}
 function imp(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.categories)throw 0;if(!confirm('Substituir os dados atuais pelo backup?'))return;S=ens(d);$('dAj').close();save()}catch(e){alert('Arquivo de backup inválido.')}};r.readAsText(f)}
 
@@ -264,7 +291,7 @@ async function taxas(){try{const[cdi,selic,ipca]=await Promise.all([bcb(4389),bc
 async function quote(t){const k=S.settings.brapiTokens||[],pool=k.length?[...k].sort(()=>Math.random()-.5):[null];
  for(const x of pool){try{const r=await fetch('https://brapi.dev/api/quote/'+t+(x?'?token='+encodeURIComponent(x):''));if(!r.ok)continue;const j=(await r.json()).results[0];if(j&&j.regularMarketPrice)return j.regularMarketPrice}catch(e){}}return null}
 async function cotar(p){const v=await quote(p.ticker);if(v){p.precoAtual=v;p.atualizadoEm=new Date().toISOString();save()}}
-async function atualizar(){const b=$('bt');if(b){b.disabled=true;b.textContent='Atualizando...'}
+async function atualizar(){const b=$('bt');if(b){b.disabled=true}
  const ok=await taxas();for(const id of['acoes','fiis']){const c=cat(id);if(!c)continue;for(const p of S.data[id].positions||[]){const v=await quote(p.ticker);if(v){p.precoAtual=v;p.atualizadoEm=new Date().toISOString()}}}
  await save();if(!ok)alert('Não foi possível consultar o Banco Central agora.')}
 
