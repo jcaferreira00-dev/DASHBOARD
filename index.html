@@ -38,9 +38,12 @@ button.g{border:0;background:none;color:var(--mut);padding:6px 8px}
 svg.i,.ib svg,.icn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transform:none}
 .icn{display:inline-flex;align-items:center;gap:6px}.icn span{display:inline-flex}
 .ib.wr{color:var(--gold)}
+.sw,.ck input.tg{appearance:none;-webkit-appearance:none;position:relative;width:34px;height:20px;padding:0;margin:0;border-radius:99px;background:var(--line);border:0;cursor:pointer;flex:none;transition:background .2s}
+.sw::after,.ck input.tg::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s}
+.sw.on,.ck input.tg:checked{background:var(--acc)}.sw.on::after,.ck input.tg:checked::after{left:16px}
 .lgr.sel{background:var(--bg);font-weight:600}
 .ck{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14px}.ck input{width:auto;margin:0}
-.inl{display:inline-block;width:104px;margin:0;padding:3px 6px;text-align:right;font-size:14px;background:transparent;border:1px solid transparent;border-bottom:1px dashed var(--mut);border-radius:6px}
+.inl{display:inline-block;width:104px;margin:0;padding:3px 6px;text-align:right;font-size:14px;background:transparent;border:1px solid transparent;border-radius:6px}
 .inl:hover,.inl:focus{border-color:var(--line);background:var(--bg);outline:0}
 .three{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .chip svg.i{width:12px;height:12px;margin-left:4px;vertical-align:-1px}
@@ -53,7 +56,19 @@ main{flex:1;min-height:0;overflow:auto;padding:20px 0 28px}
 @media(max-width:760px){.grid{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
 .card h4{margin:0 0 12px;font:600 12px sans-serif;text-transform:uppercase;letter-spacing:.09em;color:var(--mut)}
-.dn{width:150px;height:150px;transform:rotate(-90deg);flex:none}
+.dnw{position:relative;width:200px;height:200px;flex:none}
+.dn{width:100%;height:100%;transform:rotate(-90deg)}.dn circle{transition:opacity .2s;cursor:pointer}
+.dc{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;padding:0 34px}
+.dcv{font:300 24px/1.2 "SF Pro Display","Segoe UI Variable Display","Segoe UI","Helvetica Neue",Arial,sans-serif;letter-spacing:-.03em;font-variant-numeric:lining-nums tabular-nums}
+.dc .lb{margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kp{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}
+.kpi:hover{transform:translateY(-2px);border-color:var(--gold);box-shadow:0 10px 26px -16px rgba(0,0,0,.45)}
+.kv{font:400 25px/1.2 -apple-system,"Segoe UI",Arial,sans-serif;letter-spacing:-.02em;margin:5px 0 2px;font-variant-numeric:lining-nums tabular-nums}
+.kpi .bar{margin:8px 0 6px}
+.ins{display:flex;gap:12px;align-items:flex-start;padding:14px 4px;border-bottom:1px solid var(--line)}.ins:last-child{border:0}
+.ins .dot{margin-top:7px}.ins.alerta .dot{background:var(--gold)}.ins.info .dot{background:var(--mut)}.ins.ok .dot{background:var(--up)}
+.ins .n{flex:1;min-width:0}.ins .n div{font-size:13px;color:var(--mut);margin-top:2px}
 .sum{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
 .lg{flex:1;min-width:200px}
 .lgr{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;border-radius:8px;padding:8px 6px;text-align:left}
@@ -118,6 +133,7 @@ dialog h3{font:600 20px Georgia,serif;margin:0 0 14px}
 <dialog id="dLan"></dialog>
 <dialog id="dDet"></dialog>
 <dialog id="dAj"></dialog>
+<dialog id="dMt"></dialog>
 <dialog id="dCt"><div class="dh"><h3>Conta e sincronização</h3><button class="ib" onclick="$('dCt').close()" title="Fechar" aria-label="Fechar" data-i="x"></button></div>
 <div id="ctS" class="note" style="margin:0 0 12px"></div>
 <label>E-mail<input id="ctE" type="email"></label><label>Senha<input id="ctP" type="password"></label>
@@ -136,7 +152,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const IC={plus:'<path d="M12 5v14M5 12h14"/>',tune:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',eyeoff:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',pencil:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',refresh:'<path d="M20 11a8 8 0 0 0-14-4M4 4v4h4M4 13a8 8 0 0 0 14 4M20 20v-4h-4"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>'};
 const ic=n=>`<svg class="i" viewBox="0 0 24 24">${IC[n]}</svg>`;
 document.querySelectorAll('[data-i]').forEach(b=>b.innerHTML=ic(b.dataset.i));
-let S,TAB='resumo',PGN={},UID=null,L={},AS={v:null,d:365};
+let S,TAB='resumo',PGN={},UID=null,L={},AS={v:null,d:365,n:0,tab:'diag',all:0};
 const DEF=()=>({categories:[
  {id:'acoes',label:'Ações',color:'#3B9EFF',type:'market',unit:'ação',builtIn:true},
  {id:'fiis',label:'FIIs',color:'#12D18E',type:'market',unit:'FII',builtIn:true},
@@ -146,7 +162,7 @@ const DEF=()=>({categories:[
  data:{acoes:{positions:[],history:[]},fiis:{positions:[],history:[]},previdencia:{items:[],moves:[]},crypto:{positions:[],history:[]},fgts:{items:[],moves:[]}},
  settings:{},wealthHistory:[]});
 function ens(s){if(!s||!s.categories||!s.data)s=DEF();
- const t=s.settings=Object.assign({metaAnual:50000,investidoAno:0,renda:0,aliq:27.5,pgblAporte:0,metaReserva:0,livre:0,brapiTokens:[],refs:{}},s.settings||{});
+ const t=s.settings=Object.assign({metaAnual:50000,investidoAno:0,renda:0,aliq:27.5,pgblAporte:0,metaReserva:0,custoMensal:0,mesesReserva:6,rescisao:0,livre:0,brapiTokens:[],refs:{}},s.settings||{});
  if(t.pgblAno&&!t.pgblAporte)t.pgblAporte=t.pgblAno.valor||0;delete t.pgblAno;
  t.taxas=Object.assign({cdi:14.5,selic:0,ipca:0,usd:0,em:'',at:0},t.taxas||{});
  s.wealthHistory=s.wealthHistory||[];s.updatedAt=s.updatedAt||0;return s}
@@ -158,7 +174,7 @@ const isRF=c=>isM(c)&&/renda|cdb|tesouro/i.test(c.label);
 const FX=()=>S.settings.taxas.usd||1,fxp=p=>p.moeda==='USD'?FX():1;
 const money=v=>{const[a,b]=(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}).split(',');return`<span class="cu">R$</span>${a}<span class="ce">,${b}</span>`};
 function items(c){const d=S.data[c.id]||{};
- if(isM(c))return(d.positions||[]).map(p=>{const f=fxp(p),u=p.moeda==='USD';return{id:p.id,nome:p.ticker,inst:p.inst||'',at:p.qtd*p.precoAtual*f,inv:p.qtd*p.precoMedio*f,sub:[isRF(c)?(p.reservaTipo?'Reserva de '+(p.reservaTipo==='emergencia'?'emergência':'oportunidade'):''):N(p.qtd,4)+' un',u?'US$ '+N(p.precoAtual)+' · cotação '+N(FX()):''].filter(Boolean).join(' · ')}}).filter(x=>x.at>0||x.inv>0);
+ if(isM(c))return(d.positions||[]).map(p=>{const f=fxp(p),u=p.moeda==='USD';return{id:p.id,nome:p.ticker,inst:p.inst||'',res:p.reservaTipo==='emergencia',at:p.qtd*p.precoAtual*f,inv:p.qtd*p.precoMedio*f,sub:[isRF(c)?(p.reservaTipo?'Reserva de '+(p.reservaTipo==='emergencia'?'emergência':'oportunidade'):''):N(p.qtd,4)+' un',u?'US$ '+N(p.precoAtual)+' · cotação '+N(FX()):''].filter(Boolean).join(' · ')}}).filter(x=>x.at>0||x.inv>0);
  return(d.items||[]).map(i=>{let inv=0;(d.moves||[]).filter(m=>m.itemId===i.id).forEach(m=>inv+=m.tipo==='entrada'?m.valor:-m.valor);const w=(i.pct==null?100:i.pct)/100;return{id:i.id,nome:i.nome,inst:i.inst||'',at:(i.saldoAtual||0)*w,inv:inv*w,sub:w<1?'Saldo '+R(i.saldoAtual)+' · conta '+N(w*100,1)+'% no total':''}})}
 const all=()=>S.categories.filter(c=>c.id!=='fgts').flatMap(c=>items(c).map(x=>({...x,cid:c.id,cl:c.label,color:c.color})));
 const kI=x=>x.inst||'Sem instituição';
@@ -186,32 +202,37 @@ function render(){
  $('v').innerHTML=TAB==='resumo'?vResumo():TAB==='assist'?vAssist():vGuia(cat(TAB));
  stUI()}
 function go(t){TAB=t;render();$('v').parentNode.scrollTop=0}
-function donut(sg,t){let o=0,h='';sg.forEach(s=>{const f=t?s.v/t*100:0;h+=`<circle r="15.915" cx="21" cy="21" fill="none" stroke="${s.c}" opacity="${s.o==null?1:s.o}" stroke-width="5" stroke-dasharray="${f} ${100-f}" stroke-dashoffset="${-o}"/>`;o+=f});
- return`<svg viewBox="0 0 42 42" class="dn"><circle r="15.915" cx="21" cy="21" fill="none" stroke="var(--line)" stroke-width="5"/>${h}</svg>`}
+function donut(sg,t,cl,cv){let o=0,h='';sg.forEach((x,i)=>{const f=t?x.v/t*100:0,w=Math.max(0,f-(sg.length>1?.6:0));h+=`<circle data-i="${i}" r="15.915" cx="21" cy="21" fill="none" stroke="${x.c}" opacity="${x.o==null?1:x.o}" stroke-width="3.4" stroke-dasharray="${w} ${100-w}" stroke-dashoffset="${-o}" onmouseenter="hv(${i})" onmouseleave="hv(-1)" onclick="fl(${i})"/>`;o+=f});
+ return`<div class="dnw"><svg viewBox="0 0 42 42" class="dn"><circle r="15.915" cx="21" cy="21" fill="none" stroke="var(--line)" stroke-width="3.4" style="cursor:default"/>${h}</svg><div class="dc"><div class="lb" id="dcl">${esc(cl)}</div><div class="dcv m" id="dcv">${cv}</div></div></div>`}
+let DC={l:'',v:'',t:1};
+function hv(i){const l=$('dcl'),v=$('dcv');if(!l)return;const x=LG[i];document.querySelectorAll('.dn circle[data-i]').forEach(c=>c.style.opacity=i<0?'':(+c.dataset.i===i?1:.25));
+ if(i<0||!x){l.textContent=DC.l;v.innerHTML=DC.v}else{l.textContent=x.n;v.innerHTML=money(x.v)+`<div class="mut" style="font-size:12px;letter-spacing:0;font-weight:400">${P(x.v/DC.t*100)}</div>`}}
 let F={by:'guia',cat:null,inst:null},LG=[];
 const PAL=['#3B9EFF','#12D18E','#E0B84C','#B14EFF','#1EC9C9','#E07A5F','#8D99AE','#F2A65A'];
 function fl(i){const x=LG[i],k=F.by==='guia'?'cat':'inst';F[k]=F[k]===x.id?null:x.id;render()}
-function vResumo(){const A=all(),g=A.reduce((s,x)=>s+x.at,0),fg=cat('fgts')?tot(cat('fgts')):0,gr=F.by==='guia';
+function vResumo(){const A=all(),g=A.reduce((x,y)=>x+y.at,0),fg=cat('fgts')?tot(cat('fgts')):0,gr=F.by==='guia';
  if(F.cat&&!cat(F.cat))F.cat=null;
  const base=A.filter(x=>gr?(!F.inst||kI(x)===F.inst):(!F.cat||x.cid===F.cat)),m={};
  base.forEach(x=>{const k=gr?x.cid:kI(x);(m[k]=m[k]||{n:gr?x.cl:k,v:0,id:k,c:x.color}).v+=x.at});
  const sg=Object.values(m).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);if(!gr)sg.forEach((x,i)=>x.c=PAL[i%PAL.length]);
  LG=sg;const sel=gr?F.cat:F.inst,bt=sg.reduce((x,y)=>x+y.v,0);sg.forEach(x=>x.o=sel&&x.id!==sel?.3:1);
  const filt=A.filter(x=>(!F.cat||x.cid===F.cat)&&(!F.inst||kI(x)===F.inst)).sort((a,b)=>b.at-a.at),ft=filt.reduce((x,y)=>x+y.at,0),act=F.cat||F.inst;
- const s=S.settings,a=aportes(),rs=reserva(),lim=s.renda*.12,tx=s.taxas;
- const inl=(k,v)=>`<input class="inl m" type="number" step="100" value="${v||''}" placeholder="0" onchange="S.settings.${k}=+this.value||0;save()">`;
+ const s=S.settings,a=aportes(),rs=reserva(),tx=s.taxas,pl=posList(),pi=pl.reduce((x,y)=>x+y.inv,0),pp=pl.reduce((x,y)=>x+y.pl,0),ins=insights(),na=ins.filter(x=>x.lv==='alerta').length;
+ DC={l:act?[F.cat&&cat(F.cat).label,F.inst].filter(Boolean).join(' · '):'Patrimônio',v:money(act?ft:g),t:bt||1};
  const bar=(v,mx,cl)=>`<div class="bar ${cl||''}"><i style="width:${mx?Math.min(100,v/mx*100):0}%"></i></div>`;
- const left=g?`<div class="chips" style="margin:0 0 14px"><button class="chip ${gr?'on':''}" onclick="F.by='guia';render()">Por guia</button><button class="chip ${gr?'':'on'}" onclick="F.by='inst';render()">Por instituição</button></div>
- <div class="sum">${donut(sg,bt)}<div class="lg">${sg.map((x,i)=>`<button class="lgr ${sel===x.id?'sel':''}" onclick="fl(${i})"><i class="dot" style="background:${x.c}"></i><span class="n">${esc(x.n)}</span><span class="num m">${R(x.v)}</span><span class="mut num" style="width:48px;text-align:right">${P(x.v/bt*100)}</span></button>`).join('')}${fg>0?`<button class="lgr mut" onclick="go('fgts')"><i class="dot" style="border:1px solid var(--mut)"></i><span class="n">FGTS (fora do total)</span><span class="num m">${R(fg)}</span><span style="width:48px"></span></button>`:''}</div></div>
+ const kpi=(l,v,sb,oc,ex)=>`<div class="kpi" onclick="${oc}"><div class="lb">${l}</div><div class="kv">${v}</div>${ex||''}<div class="mut" style="font-size:12.5px">${sb}</div></div>`;
+ const kp=`<div class="kp">${kpi('Resultado das posições',`<span class="m ${pp>=0?'up':'dnc'}">${pp>=0?'+':''}${R(pp)}</span>`,pi?P(pp/pi*100)+' sobre o investido':'Sem posições',"AS.tab='diag';go('assist')")}
+ ${kpi('Meta do ano',`<span class="m">${P(s.metaAnual?a.t/s.metaAnual*100:0)}</span>`,a.t>=s.metaAnual?'Meta atingida':'Faltam '+R(s.metaAnual-a.t),'openMetas()',bar(a.t,s.metaAnual))}
+ ${kpi('Reserva de emergência',`<span class="m">${R(rs.at)}</span>`,s.custoMensal>0?N(rs.at/s.custoMensal,1)+' meses de despesas':(rs.meta?'Meta de '+R(rs.meta):'Defina a meta'),'openMetas()',bar(rs.at,rs.meta))}
+ ${kpi('Diagnóstico',na?na+(na>1?' alertas':' alerta'):'Em ordem',ins.length+' análise(s) da carteira',"AS.tab='diag';go('assist')")}</div>`;
+ const left=g?`<div class="chips" style="margin:0 0 16px"><button class="chip ${gr?'on':''}" onclick="F.by='guia';render()">Por guia</button><button class="chip ${gr?'':'on'}" onclick="F.by='inst';render()">Por instituição</button></div>
+ <div class="sum">${donut(sg,bt,DC.l,DC.v)}<div class="lg">${sg.map((x,i)=>`<button class="lgr ${sel===x.id?'sel':''}" onclick="fl(${i})" onmouseenter="hv(${i})" onmouseleave="hv(-1)"><i class="dot" style="background:${x.c}"></i><span class="n">${esc(x.n)}</span><span class="num m">${R(x.v)}</span><span class="mut num" style="width:48px;text-align:right">${P(x.v/bt*100)}</span></button>`).join('')}${fg>0?`<button class="lgr mut" onclick="go('fgts')"><i class="dot" style="border:1px solid var(--mut)"></i><span class="n">FGTS (fora do total)</span><span class="num m">${R(fg)}</span><span style="width:48px"></span></button>`:''}</div></div>
  ${act?`<div class="chips" style="margin:14px 0 0">${F.cat?`<button class="chip on" onclick="F.cat=null;render()">${esc(cat(F.cat).label)}${ic('x')}</button>`:''}${F.inst?`<button class="chip on" onclick="F.inst=null;render()">${esc(F.inst)}${ic('x')}</button>`:''}</div>
  <div style="margin-top:6px"><div class="note" style="display:flex;justify-content:space-between;align-items:center;margin:0"><span><b class="num m">${R(ft)}</b> · ${P(g?ft/g*100:0)} do total</span>${F.cat?`<button class="ib" onclick="go('${F.cat}')" title="Abrir guia" aria-label="Abrir guia">${ic('right')}</button>`:''}</div>
  ${filt.slice(0,5).map(x=>`<div class="row" onclick="openDet('${x.cid}','${x.id}')"><div class="n"><b>${esc(x.nome)}</b><div class="mut" style="font-size:12.5px">${esc(x.cl+(x.inst?' · '+x.inst:''))}</div></div><div class="mut num" style="width:52px;text-align:right">${P(ft?x.at/ft*100:0)}</div><div class="r num m">${R(x.at)}</div></div>`).join('')}${filt.length>5?`<div class="note">e mais ${filt.length-5} item(ns)</div>`:''}</div>`:''}`
  :`<div class="emp">Nenhum valor registrado ainda.<br><br><button class="p" onclick="openLan()">Fazer o primeiro lançamento</button></div>`;
- return`<div class="grid"><div class="card"><h4>Onde está o seu dinheiro</h4>${left}</div>
- <div style="display:grid;gap:14px;align-content:start"><div class="card"><h4>Metas</h4>
- <div class="goal"><div class="h"><span>Investido no ano</span><span class="num">${inl('investidoAno',a.t)} <span class="mut">de</span> ${inl('metaAnual',s.metaAnual)}</span></div>${bar(a.t,s.metaAnual)}<div class="mut" style="font-size:12.5px">${a.t>=s.metaAnual?'Meta atingida':'Faltam '+R(s.metaAnual-a.t)}</div></div>
- <div class="goal"><div class="h"><span>PGBL no ano</span><span class="num">${inl('pgblAporte',a.pg)} <span class="mut">de ${lim?R(lim):'-'}</span></span></div>${bar(a.pg,lim,'g')}<div class="mut" style="font-size:12.5px">${lim?'Espaço restante: '+R(Math.max(0,lim-a.pg))+' · economia estimada '+R(Math.min(a.pg,lim)*s.aliq/100):'Informe a renda anual no Assistente'}</div></div>
- ${rs.meta?`<div class="goal"><div class="h"><span>Reserva de emergência</span><span class="num m">${R(rs.at)} <span class="mut">de ${R(rs.meta)}</span></span></div>${bar(rs.at,rs.meta)}<div class="mut" style="font-size:12.5px">${rs.at>=rs.meta?'Completa':'Faltam '+R(rs.meta-rs.at)}</div></div>`:''}</div>
+ return kp+`<div class="grid"><div class="card"><h4>Onde está o seu dinheiro</h4>${left}</div>
+ <div style="display:grid;gap:14px;align-content:start"><div class="card"><h4>Atenção</h4>${ins.slice(0,3).map(x=>`<div class="ins ${x.lv}" style="cursor:pointer;padding:10px 4px" onclick="AS.tab='diag';go('assist')"><i class="dot"></i><div class="n"><b>${esc(x.t)}</b></div></div>`).join('')}</div>
  <div class="card"><h4>Taxas de mercado</h4><div class="three"><div><div class="lb">CDI</div><b class="sr">${N(tx.cdi)}%</b></div><div><div class="lb">Selic meta</div><b class="sr">${tx.selic?N(tx.selic)+'%':'-'}</b></div><div><div class="lb">Dólar</div><b class="sr">${tx.usd?'R$ '+N(tx.usd):'-'}</b></div></div>
  <div class="note" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${tx.em?'Banco Central, '+tx.em:'Sem atualização'}${tx.ipca?' · IPCA 12m '+N(tx.ipca)+'%':''}</span><button class="ib" id="bt" onclick="atualizar()" title="Atualizar taxas e cotações" aria-label="Atualizar taxas e cotações">${ic('refresh')}</button></div></div></div></div>`}
 function vGuia(c){const it=items(c).sort((a,b)=>b.at-a.at),t=it.reduce((s,x)=>s+x.at,0),inv=it.reduce((s,x)=>s+(x.inv||0),0);
@@ -221,9 +242,9 @@ function vGuia(c){const it=items(c).sort((a,b)=>b.at-a.at),t=it.reduce((s,x)=>s+
  let h=`<div class="top" style="margin-bottom:6px"><div><div class="lb">${esc(c.label)}</div><div class="tot num m">${money(t)}</div>${inv>0?`<div class="${t>=inv?'up':'dnc'} num m">${t>=inv?'+':''}${R(t-inv)} · ${P((t-inv)/inv*100)}</div>`:''}</div><button class="ib p" onclick="openLan('${c.id}')" title="Novo lançamento em ${esc(c.label)}" aria-label="Novo lançamento">${ic('plus')}</button></div>`;
  if(!it.length)return h+`<div class="card emp">Nada registrado nesta guia.</div>`;
  h+=`<div class="card"><div class="stack">${seg.map(s=>`<i style="width:${s.v/t*100}%;background:${c.color};opacity:${s.o}"></i>`).join('')}</div><div class="mut" style="font-size:12.5px;display:flex;gap:14px;flex-wrap:wrap">${seg.map(s=>`<span>${esc(s.n)} ${P(s.v/t*100)}</span>`).join('')}</div></div><div class="card" style="margin-top:14px;padding:6px 14px 14px">`;
- it.slice(pg*per,pg*per+per).forEach(x=>{const r=x.inv>0?x.at-x.inv:null;h+=`<div class="row" onclick="openDet('${c.id}','${x.id}')"><div class="n"><b>${esc(x.nome)}</b><div class="mut" style="font-size:12.5px">${esc([x.inst,x.sub].filter(Boolean).join(' · '))}</div></div><div class="mut num" style="width:52px;text-align:right">${P(x.at/t*100)}</div><div class="r"><div class="num m">${R(x.at)}</div>${r!==null?`<div class="num m ${r>=0?'up':'dnc'}" style="font-size:12.5px">${r>=0?'+':''}${R(r)}</div>`:''}</div></div>`});
+ it.slice(pg*per,pg*per+per).forEach(x=>{const r=x.inv>0?x.at-x.inv:null;h+=`<div class="row" onclick="openDet('${c.id}','${x.id}')"><div class="n"><b>${esc(x.nome)}</b><div class="mut" style="font-size:12.5px">${esc([x.inst,x.sub].filter(Boolean).join(' · '))}</div></div><div class="mut num" style="width:52px;text-align:right">${P(x.at/t*100)}</div><div class="r"><div class="num m">${R(x.at)}</div>${r!==null?`<div class="num m ${r>=0?'up':'dnc'}" style="font-size:12.5px">${r>=0?'+':''}${R(r)}</div>`:''}</div>${isRF(c)?`<button class="sw ${x.res?'on':''}" role="switch" aria-checked="${!!x.res}" title="Reserva de emergência" aria-label="Reserva de emergência" onclick="event.stopPropagation();rv('${c.id}','${x.id}')"></button>`:''}</div>`});
  if(pages>1)h+=`<div class="pg"><button class="ib" ${pg?'':'disabled'} onclick="PGN['${c.id}']=${pg-1};render()" title="Anterior" aria-label="Anterior">${ic('left')}</button>${pg+1} de ${pages}<button class="ib" ${pg<pages-1?'':'disabled'} onclick="PGN['${c.id}']=${pg+1};render()" title="Próxima" aria-label="Próxima">${ic('right')}</button></div>`;
- return h+'</div>'}
+ return h+'</div>'+(isRF(c)?`<div class="note" style="text-align:center">A chave à direita de cada investimento o conta como reserva de emergência. Na reserva: <b class="num m">${R(it.filter(x=>x.res).reduce((a,x)=>a+x.at,0))}</b></div>`:'')}
 
 /* ---------- Assistente ---------- */
 const OPS=[{k:'tes',n:'Tesouro Selic',p:99,l:'Diária',o:'Garantia do Tesouro Nacional'},{k:'cdbl',n:'CDB com liquidez diária',p:100,l:'Diária',o:'Cobertura do FGC até o limite'},{k:'cdb',n:'CDB com prazo definido',p:110,l:'No vencimento',o:'Cobertura do FGC; resgate antecipado pode não ser possível'},{k:'lci',n:'LCI / LCA',p:92,l:'Após carência',o:'Isenta de IR para pessoa física; FGC'},{k:'poup',n:'Poupança',p:0,l:'Diária',o:'Referência fixa de 0,5% ao mês'}];
@@ -231,23 +252,63 @@ const irT=d=>d<=180?.225:d<=360?.2:d<=720?.175:.15;
 function ganho(v,d,o){const s=S.settings,cdi=s.taxas.cdi,pc=(s.refs[o.k]||o.p);
  const g=o.k==='poup'?v*(Math.pow(1.005,d/30.4167)-1):v*(Math.pow(1+cdi/100*pc/100,d/365)-1);
  return(o.k==='poup'||o.k==='lci')?g:g*(1-irT(d))}
-function vAssist(){const s=S.settings,v=AS.v==null?(s.livre||0):AS.v,d=AS.d,a=aportes(),rs=reserva(),al=s.aliq/100,lim=s.renda*.12,esp=Math.max(0,lim-a.pg),mr=Math.max(1,12-new Date().getMonth()),falta=Math.max(0,s.metaAnual-a.t);
- const fi=(t,k,st)=>`<label>${t}<input type="number" step="${st}" value="${s[k]||''}" onchange="S.settings.${k}=+this.value||0;save()"></label>`;
- let rest=v,stp=[];
+function posList(){const o=[];S.categories.forEach(c=>{if(!isM(c)||c.id==='fgts')return;items(c).forEach(x=>{const rt=isRF(c),ir=rt?.225:(c.id==='fiis'||/fii|imobili/i.test(c.label))?.2:.15;o.push({cid:c.id,cl:c.label,id:x.id,nome:x.nome,at:x.at,inv:x.inv,pl:x.at-x.inv,pp:x.inv?(x.at-x.inv)/x.inv:0,res:!!x.res,inst:x.inst,rf:rt,ir})})});return o}
+function insights(){const s=S.settings,a=aportes(),rs=reserva(),o=[],A=all(),g=A.reduce((x,y)=>x+y.at,0),pl=posList(),now=new Date(),al=s.aliq/100,lim=s.renda*.12,esp=Math.max(0,lim-a.pg),
+ dias=Math.max(0,Math.round((new Date(now.getFullYear(),11,31)-now)/864e5)),mr=Math.max(1,12-now.getMonth()),falta=Math.max(0,s.metaAnual-a.t);
+ if(!g&&!s.rescisao&&!s.renda)return[{lv:'info',t:'Comece registrando seus ativos',d:'Com os lançamentos e o perfil preenchidos, o assistente passa a avaliar reserva, metas, PGBL, prejuízos e necessidade de caixa.',act:{l:'Novo lançamento',f:'openLan()'}}];
+ const neg=pl.filter(x=>!x.rf&&x.inv>0&&x.pl<0).sort((x,y)=>x.pl-y.pl);
+ if(neg.length)o.push({lv:'alerta',t:neg.length+' ativo(s) no prejuízo: '+R(neg.reduce((x,y)=>x+y.pl,0)),d:neg.slice(0,4).map(x=>x.nome+' ('+P(x.pp*100)+')').join(', ')+(neg.length>4?' e outros':'')+'. Vender para levantar caixa, por exemplo diante de uma oportunidade de negócio, realizaria essa perda. O prejuízo só gera crédito para reduzir o IR de ganhos futuros da mesma modalidade, então prefira outras fontes de caixa e deixe estes por último.',act:{l:'Simular caixa',f:"AS.tab='caixa';render()"}});
+ if(s.rescisao>0){if(s.custoMensal>0)o.push({lv:'info',t:'Valor rescisório do contrato: '+R(s.rescisao),d:'Somado à reserva, cobre '+N((rs.at+s.rescisao)/s.custoMensal,1)+' meses de despesas (a reserva sozinha cobre '+N(rs.at/s.custoMensal,1)+'). O pagamento depende do desligamento e das condições do contrato, então complementa a reserva, não a substitui. Considere esse valor e o prazo para recebê-lo ao avaliar mudanças de carreira ou de negócio.'});
+  else o.push({lv:'info',t:'Valor rescisório do contrato: '+R(s.rescisao),d:'Informe seu custo mensal de vida para calcular quantos meses de despesas ele cobre junto com a reserva.',act:{l:'Abrir perfil',f:'openMetas()'}})}
+ if(rs.meta>0&&rs.at<rs.meta)o.push({lv:'alerta',t:'Reserva de emergência incompleta',d:'Faltam '+R(rs.meta-rs.at)+' para a meta de '+R(rs.meta)+(s.custoMensal>0?'; hoje ela cobre '+N(rs.at/s.custoMensal,1)+' meses de despesas':'')+'. A reserva tem prioridade sobre novos investimentos de risco.'});
+ else if(!rs.at&&pl.some(x=>x.rf))o.push({lv:'info',t:'Defina sua reserva de emergência',d:'Ative a chave nos investimentos de renda fixa que formam a reserva, por exemplo o Tesouro Selic.',act:{l:'Abrir renda fixa',f:"go('"+rfCat().id+"')"}});
+ else if(rs.meta>0)o.push({lv:'ok',t:'Reserva de emergência completa',d:R(rs.at)+' de '+R(rs.meta)+(s.custoMensal>0?', cobrindo '+N(rs.at/s.custoMensal,1)+' meses de despesas':'')+'.'});
+ if(s.renda>0&&esp>0)o.push({lv:dias<=60?'alerta':'info',t:'PGBL: '+R(esp)+' ainda dedutíveis em '+now.getFullYear(),d:'Aportar esse valor reduziria o IR em cerca de '+R(esp*al)+(dias<=60?'; o prazo é 31/12 ('+dias+' dias)':'')+'. Equivale a cerca de '+R(esp/mr)+' por mês até dezembro. Vale só para quem usa a declaração completa.',act:{l:'Registrar aporte',f:"openLan('previdencia','in','',"+esp.toFixed(2)+")"}});
+ else if(!s.renda)o.push({lv:'info',t:'PGBL: informe a renda anual',d:'Sem a renda bruta tributável não é possível calcular o limite dedutível de 12% nem a economia de IR.',act:{l:'Abrir perfil',f:'openMetas()'}});
+ if(s.metaAnual>0){const doy=Math.round((now-new Date(now.getFullYear(),0,0))/864e5),ex=s.metaAnual*doy/365;
+  if(a.t>=s.metaAnual)o.push({lv:'ok',t:'Meta anual de aportes atingida',d:R(a.t)+' de '+R(s.metaAnual)+'.'});
+  else if(a.t<ex*.9)o.push({lv:'alerta',t:'Aportes abaixo do ritmo da meta',d:'Pelo calendário, o esperado até hoje seria cerca de '+R(ex)+'; você registrou '+R(a.t)+'. Para fechar o ano na meta, faltam '+R(falta)+' (cerca de '+R(falta/mr)+' por mês).'});
+  else o.push({lv:'ok',t:'Aportes no ritmo da meta',d:R(a.t)+' de '+R(s.metaAnual)+'; faltam '+R(falta)+'.'})}
+ pl.filter(x=>!x.rf&&g&&x.at/g>.25).forEach(x=>o.push({lv:'info',t:x.nome+' concentra '+P(x.at/g*100)+' do patrimônio',d:'Uma posição acima de 25% do total aumenta o risco da carteira. Avalie se essa concentração é intencional.'}));
+ const by={};pl.filter(x=>x.rf&&x.inst&&!/tesouro/i.test(x.nome)).forEach(x=>by[x.inst]=(by[x.inst]||0)+x.at);
+ Object.entries(by).filter(e=>e[1]>250000).forEach(e=>o.push({lv:'alerta',t:'FGC: '+e[0]+' acima de R$ 250 mil',d:'Há '+R(e[1])+' em renda fixa bancária nessa instituição. A cobertura do FGC é de até R$ 250 mil por CPF e por instituição; considere distribuir o excedente. Títulos do Tesouro não entram nessa conta.'}));
+ if(s.livre>0)o.push({lv:'info',t:R(s.livre)+' disponíveis para alocar',d:'Veja a ordem sugerida segundo as suas metas e o comparativo de alternativas.',act:{l:'Alocar',f:"AS.tab='alocar';render()"}});
+ const w={alerta:0,info:1,ok:2};return o.sort((x,y)=>w[x.lv]-w[y.lv])}
+function simCaixa(X){const s=S.settings,p=posList(),src=[];
+ if(s.livre>0)src.push({n:'Caixa já disponível',net:s.livre,tax:0,k:0,nt:'Sem custo'});
+ const mk=(x,k,nt)=>{const tx=Math.max(0,x.pl)*x.ir;return{n:x.nome,net:x.at-tx,tax:tx,k,nt,r:x.at?tx/x.at:0,pp:x.pp}};
+ p.filter(x=>x.rf&&!x.res).map(x=>mk(x,1,'Confira carência e liquidez; IR regressivo de até 22,5% sobre o rendimento')).sort((a,b)=>a.r-b.r).forEach(x=>src.push(x));
+ p.filter(x=>!x.rf&&x.pl>=0).map(x=>mk(x,2,x.pl>0?'IR estimado sobre o ganho (pode haver isenção em vendas de ações até R$ 20 mil no mês)':'Sem ganho a tributar')).sort((a,b)=>a.r-b.r).forEach(x=>src.push(x));
+ p.filter(x=>!x.rf&&x.pl<0).map(x=>mk(x,3,'Realiza prejuízo de '+R(-x.pl))).sort((a,b)=>b.pp-a.pp).forEach(x=>src.push(x));
+ p.filter(x=>x.rf&&x.res).map(x=>mk(x,4,'Parte da reserva de emergência')).forEach(x=>src.push(x));
+ let rest=X;src.forEach(x=>{x.use=Math.min(Math.max(0,x.net),rest);rest-=x.use;x.t2=x.net>0?x.tax*x.use/x.net:0});return{src,rest:Math.max(0,rest)}}
+function tDiag(){const L=insights(),sh=AS.all?L:L.slice(0,6);
+ return`<div class="card"><h4>Diagnóstico da carteira</h4>${sh.map(x=>`<div class="ins ${x.lv}"><i class="dot"></i><div class="n"><b>${esc(x.t)}</b><div>${esc(x.d)}</div></div>${x.act?`<button onclick="${x.act.f}">${x.act.l}</button>`:''}</div>`).join('')}${L.length>6&&!AS.all?`<div class="pg"><button class="g" onclick="AS.all=1;render()">Mostrar todos (${L.length})</button></div>`:''}</div><div class="note">Análises automáticas com base nos valores registrados. Não são recomendações de investimento nem aconselhamento tributário ou jurídico.</div>`}
+function tCaixa(){const X=AS.n||0,r=simCaixa(X),free=r.src.filter(x=>x.k<=2).reduce((a,x)=>a+x.net,0),rows=r.src.filter(x=>x.use>0||x.k>=3).slice(0,8),tg=['','','','Prejuízo','Reserva'];
+ return`<div class="card"><h4>Preciso de caixa para uma oportunidade</h4><div class="fld"><label>Valor necessário (R$)<input type="number" step="1000" value="${X||''}" onchange="AS.n=+this.value||0;render()"></label></div>
+ <div class="note" style="margin:0 0 14px">Sem vender no prejuízo e sem tocar na reserva, você consegue mobilizar cerca de <b class="num m">${R(free)}</b>, já descontado o IR estimado.</div>
+ ${X>0?`<div class="sc"><table><thead><tr><th>Fonte</th><th class="r">Líquido disponível</th><th class="r">Usar</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(x.n)} ${tg[x.k]?`<span class="tag" style="font-size:11px;border:1px solid var(--gold);color:var(--gold);border-radius:99px;padding:1px 8px">${tg[x.k]}</span>`:''}<div class="mut" style="font-size:12px">${esc(x.nt)}</div></td><td class="r num m">${R(x.net)}</td><td class="r num m">${x.use>0?R(x.use):'-'}</td></tr>`).join('')}</tbody></table></div>
+ <div class="note">${r.rest<=0?'O valor é coberto. IR estimado total: '+R(r.src.reduce((a,x)=>a+x.t2,0))+'.':'Faltam '+R(r.rest)+': as posições registradas não cobrem o valor necessário.'}${r.src.some(x=>x.k>=3&&x.use>0)?' Atenção: o plano inclui fontes marcadas como prejuízo ou reserva.':''}</div>`:'<div class="emp" style="padding:12px">Informe o valor para ver a ordem de venda com menor custo.</div>'}</div><div class="note">Ordem: caixa disponível, renda fixa fora da reserva, posições com ganho (menor imposto primeiro), posições com prejuízo e, por último, a reserva. Estimativas simplificadas, sem considerar compensação de prejuízos anteriores.</div>`}
+function tAlocar(){const s=S.settings,v=AS.v==null?(s.livre||0):AS.v,d=AS.d,a=aportes(),rs=reserva(),al=s.aliq/100,esp=Math.max(0,s.renda*.12-a.pg);let rest=v,stp=[];
  if(rs.meta>rs.at&&rest>0){const x=Math.min(rest,rs.meta-rs.at);rest-=x;stp.push(['Reserva de emergência',x,`Faltam ${R(rs.meta-rs.at)} para completar a meta da reserva. Ela tem prioridade sobre os demais objetivos.`,rfCat().id])}
  if(s.renda&&esp>0&&rest>0){const x=Math.min(rest,esp);rest-=x;stp.push(['PGBL, para reduzir o imposto',x,`Reduz o IR em cerca de ${R(x*al)}. Vale só na declaração completa, com aporte até 31/12.`,'previdencia'])}
  if(rest>0)stp.push(['Renda fixa',rest,'Saldo para os demais aportes. Compare as alternativas abaixo conforme o prazo que você precisa.',rfCat().id]);
  const rows=OPS.map(o=>{const g=ganho(v,d,o);return{o,g,aa:v>0?(Math.pow(1+g/v,365/d)-1)*100:0}}).sort((x,y)=>y.g-x.g);
- return`<div class="grid" style="grid-template-columns:1fr"><div class="card"><h4>Metas e PGBL</h4>
- <div class="fld">${fi('Meta anual de aportes (R$)','metaAnual',100)}${fi('Investido no ano (R$)','investidoAno',100)}</div>
- <div class="note" style="margin:-4px 0 16px">${falta>0?`Faltam ${R(falta)} para a meta, cerca de ${R(falta/mr)} por mês até dezembro.`:'Meta anual atingida.'}</div>
- <div class="fld">${fi('Renda bruta tributável anual (R$)','renda',1000)}${fi('Alíquota marginal de IR (%)','aliq',.5)}${fi('Aportado em PGBL no ano (R$)','pgblAporte',100)}</div>
- ${s.renda?`<div class="step" style="border:0;padding-bottom:0"><div class="n"><b>Sugestão de PGBL: <span class="num">${esp>0?R(esp):'limite atingido'}</span></b><div class="mut" style="font-size:13px">Limite dedutível de ${R(lim)} (12% da renda); aportado ${R(a.pg)}, o que já garante cerca de ${R(Math.min(a.pg,lim)*al)} de economia. ${esp>0?`Aportar mais ${R(esp)}, cerca de ${R(esp/mr)} por mês até dezembro, reduziria o IR em mais ${R(esp*al)}.`:''} Vale só na declaração completa, com aporte até 31/12.</div></div>${esp>0?`<button onclick="openLan('previdencia','in','',${esp.toFixed(2)})">Registrar</button>`:''}</div>`:'<div class="note" style="margin:0">Informe a renda anual para calcular o limite e a sugestão de PGBL.</div>'}</div>
- <div class="card"><h4>Dinheiro disponível para alocar</h4>
+ return`<div class="card"><h4>Dinheiro disponível para alocar</h4>
  <div class="fld"><label>Valor (R$)<input type="number" step="100" value="${v||''}" onchange="AS.v=+this.value||0;render()"></label><label>Prazo que não precisarei do dinheiro<select onchange="AS.d=+this.value;render()">${[[90,'3 meses'],[180,'6 meses'],[365,'1 ano'],[730,'2 anos'],[1095,'3 anos']].map(x=>`<option value="${x[0]}" ${x[0]===d?'selected':''}>${x[1]}</option>`).join('')}</select></label></div>
  ${v>0?stp.map((x,i)=>`<div class="step"><div class="k">${i+1}</div><div class="n"><b>${x[0]}: <span class="num">${R(x[1])}</span></b><div class="mut" style="font-size:13px">${x[2]}</div></div><button onclick="openLan('${x[3]}','in','',${x[1].toFixed(2)})">Registrar</button></div>`).join(''):'<div class="emp" style="padding:14px">Informe um valor para montar a ordem de alocação segundo as suas metas.</div>'}</div>
- <div class="card"><h4>Comparativo de alternativas para ${R(v)} em ${d>=365?N(d/365,1)+' ano(s)':N(d/30,0)+' meses'}</h4><div class="sc"><table><thead><tr><th>Alternativa</th><th class="r">% do CDI</th><th class="r">Ganho líquido</th><th class="r">Líquido ao ano</th><th>Liquidez</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.o.n}<div class="mut" style="font-size:12px">${r.o.o}</div></td><td class="r">${r.o.k==='poup'?'-':`<input type="number" step="1" value="${S.settings.refs[r.o.k]||r.o.p}" onchange="S.settings.refs['${r.o.k}']=+this.value;save()">`}</td><td class="r num m">${R(r.g)}</td><td class="r num">${N(r.aa)}%</td><td>${r.o.l}</td></tr>`).join('')}</tbody></table></div>
- <div class="note">Simulação com o CDI de ${N(s.taxas.cdi)}% a.a., IR regressivo já descontado (exceto LCI/LCA e poupança). Os percentuais do CDI são referências editáveis: use os que você encontrar na sua corretora. Isto não é recomendação de investimento.</div></div></div>`}
+ <div class="card" style="margin-top:14px"><h4>Comparativo de alternativas para ${R(v)} em ${d>=365?N(d/365,1)+' ano(s)':N(d/30,0)+' meses'}</h4><div class="sc"><table><thead><tr><th>Alternativa</th><th class="r">% do CDI</th><th class="r">Ganho líquido</th><th class="r">Líquido ao ano</th><th>Liquidez</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.o.n}<div class="mut" style="font-size:12px">${r.o.o}</div></td><td class="r">${r.o.k==='poup'?'-':`<input type="number" step="1" value="${S.settings.refs[r.o.k]||r.o.p}" onchange="S.settings.refs['${r.o.k}']=+this.value;save()">`}</td><td class="r num m">${R(r.g)}</td><td class="r num">${N(r.aa)}%</td><td>${r.o.l}</td></tr>`).join('')}</tbody></table></div>
+ <div class="note">Simulação com o CDI de ${N(s.taxas.cdi)}% a.a., IR regressivo já descontado (exceto LCI/LCA e poupança). Os percentuais do CDI são referências editáveis: use os que você encontrar na sua corretora. Isto não é recomendação de investimento.</div></div>`}
+function vAssist(){const t=AS.tab||'diag';
+ return`<div class="top" style="margin-bottom:16px;align-items:center"><div class="chips" style="margin:0">${[['diag','Diagnóstico'],['caixa','Caixa para oportunidade'],['alocar','Alocar dinheiro']].map(x=>`<button class="chip ${t===x[0]?'on':''}" onclick="AS.tab='${x[0]}';render()">${x[1]}</button>`).join('')}</div><button class="icn" onclick="openMetas()">${ic('tune')}Metas e perfil</button></div>`+(t==='caixa'?tCaixa():t==='alocar'?tAlocar():tDiag())}
+function openMetas(){const s=S.settings,a=aportes(),rs=reserva(),lim=s.renda*.12,f=(i,t,v,st)=>`<label>${t}<input id="${i}" type="number" step="${st||100}" value="${v||''}"></label>`,
+ bar=(v,m,cl)=>`<div class="bar ${cl||''}"><i style="width:${m?Math.min(100,v/m*100):0}%"></i></div>`;
+ $('dMt').innerHTML=`<div class="dh"><h3>Metas e perfil</h3><button class="ib" onclick="$('dMt').close()" title="Fechar" aria-label="Fechar">${ic('x')}</button></div>
+ <div class="lb">Meta do ano</div>${bar(a.t,s.metaAnual)}<div class="two" style="margin-top:12px">${f('mA','Meta de aportes (R$)',s.metaAnual)}${f('mI','Investido no ano (R$)',s.investidoAno)}</div>
+ <div class="lb">PGBL</div>${bar(a.pg,lim,'g')}<div class="two" style="margin-top:12px">${f('mR','Renda bruta anual (R$)',s.renda,1000)}${f('mL','Alíquota marginal (%)',s.aliq,.5)}</div>${f('mP','Aportado em PGBL no ano (R$)',s.pgblAporte)}
+ <div class="lb">Reserva e proteção</div>${bar(rs.at,rs.meta)}<div class="two" style="margin-top:12px">${f('mE','Meta da reserva (R$)',rs.meta)}${f('mC','Custo mensal de vida (R$)',s.custoMensal)}</div><div class="two">${f('mM','Meses desejados de reserva',s.mesesReserva,1)}${f('mS','Valor rescisório do contrato (R$)',s.rescisao)}</div>
+ <div class="ac" style="justify-content:space-between"><button onclick="$('mE').value=Math.round((+$('mC').value||0)*(+$('mM').value||0))">Meta = custo x meses</button><button class="p" onclick="saveMetas()">Salvar</button></div>`;$('dMt').showModal()}
+function saveMetas(){const g=i=>parseFloat($(i).value)||0;Object.assign(S.settings,{metaAnual:g('mA'),investidoAno:g('mI'),renda:g('mR'),aliq:g('mL'),pgblAporte:g('mP'),metaReserva:g('mE'),custoMensal:g('mC'),mesesReserva:g('mM')||6,rescisao:g('mS')});$('dMt').close();save()}
 /* ---------- Lançamento ---------- */
 function openLan(c,op,item,val){const k=cat(c)?c:(cat(TAB)?TAB:S.categories[0].id);L={cat:k,op:op||'in',item:item||'',val:val||''};drawLan();$('dLan').showModal()}
 function drawLan(){const c=cat(L.cat),m=isM(c),rf=isRF(c),d=S.data[c.id],out=L.op==='out';
@@ -261,6 +322,7 @@ function drawLan(){const c=cat(L.cat),m=isM(c),rf=isRF(c),d=S.data[c.id],out=L.o
  else{const its=d.items||[];
   h+=`<label>Conta<select id="lI" onchange="$('lN').style.display=this.value==='__n'?'block':'none'">${its.map(i=>`<option value="${i.id}" ${i.id===L.item?'selected':''}>${esc(i.nome)}</option>`).join('')}<option value="__n" ${its.length?'':'selected'}>Nova conta</option></select></label>
  <div id="lN" style="display:${its.length?'none':'block'}"><label>Nome da nova conta<input id="lT"></label><div class="two"><label>Instituição<input id="lS" list="di" placeholder="Ex.: Rico"></label><label>% que entra no total<input id="lPc" type="number" step="1" value="100"></label></div></div><label>Valor (R$)<input id="lV" type="number" step="0.01" value="${L.val}"></label>`}
+ if(!out&&m&&rf){const p0=(d.positions||[]).find(x=>x.id===L.item);h+=`<label class="ck"><input type="checkbox" class="tg" id="lR" ${p0&&p0.reservaTipo==='emergencia'?'checked':''}>Usar como reserva de emergência</label>`}
  if(!out)h+=`<label class="ck"><input type="checkbox" id="lK" checked>Somar ao investido no ano</label>`+(c.id==='previdencia'?`<label class="ck"><input type="checkbox" id="lG" checked>Somar ao PGBL do ano</label>`:'');
  h+=`<div class="ac"><button class="p" onclick="saveLan()">Salvar</button></div>`;$('dLan').innerHTML=h}
 function recalc(d,pid){let q=0,pm=0;(d.history||[]).filter(h=>h.positionId===pid).forEach(h=>{if(h.tipo==='compra'){const n=q+h.qtd;pm=n>0?(q*pm+h.qtd*h.preco)/n:0;q=n}else{q=Math.max(0,q-h.qtd);if(!q)pm=0}});const p=d.positions.find(x=>x.id===pid);p.qtd=q;p.precoMedio=pm}
@@ -270,7 +332,7 @@ async function saveLan(){const c=cat(L.cat),d=S.data[c.id],rf=isRF(c),v=parseFlo
   let pos=d.positions.find(x=>x.ticker.toLowerCase()===t.toLowerCase());
   if(!pos){if(out)return alert('Ativo não encontrado para venda.');pos={id:uid(),ticker:rf?t:t.toUpperCase(),qtd:0,precoMedio:0,precoAtual:p,atualizadoEm:null};if(mo==='USD')pos.moeda='USD';d.positions.push(pos)}
   else if((pos.moeda||'BRL')!==mo)return alert('Este ativo está registrado em '+(pos.moeda==='USD'?'US$':'R$')+'.');
-  if(inst)pos.inst=inst;
+  if(inst)pos.inst=inst;if($('lR')&&$('lR').checked)pos.reservaTipo='emergencia';
   const prev=pos.qtd*pos.precoAtual;if(out&&q>pos.qtd+1e-9)return alert('Quantidade maior que a posição.');
   d.history.push({id:uid(),positionId:pos.id,tipo:out?'venda':'compra',qtd:q,preco:p,data});recalc(d,pos.id);
   if(rf&&pos.qtd>0)pos.precoAtual=Math.max(0,prev+(out?-p:p))/pos.qtd;
@@ -284,7 +346,7 @@ async function saveLan(){const c=cat(L.cat),d=S.data[c.id],rf=isRF(c),v=parseFlo
 function openDet(cid,id){const c=cat(cid),d=S.data[cid],m=isM(c),rf=isRF(c);let h='';
  if(m){const p=d.positions.find(x=>x.id===id),f=fxp(p),us=p.moeda==='USD',cu=v=>us?'US$ '+N(v):R(v),inv=p.qtd*p.precoMedio*f,at=p.qtd*p.precoAtual*f,r=at-inv;
   h=dh(esc(p.ticker),cid,id)+`<div class="st"><span>Valor atual</span><b class="num m">${R(at)}</b></div><div class="st"><span>Investido</span><span class="num m">${R(inv)}</span></div><div class="st"><span>Resultado</span><span class="num m ${r>=0?'up':'dnc'}">${r>=0?'+':''}${R(r)} (${P(inv?r/inv*100:0)})</span></div>`+(p.inst?`<div class="st"><span>Instituição</span><span>${esc(p.inst)}</span></div>`:'')+(rf?'':`<div class="st"><span>Quantidade · preço médio · preço atual</span><span class="num m">${N(p.qtd,4)} · ${cu(p.precoMedio)} · ${cu(p.precoAtual)}</span></div>`)+(us?`<div class="st"><span>Cotação do dólar usada</span><span class="num">R$ ${N(FX())}</span></div>`:'');
-  if(rf)h+=`<label style="margin-top:14px">Marcar como<select onchange="marca('${cid}','${id}',this.value)"><option value="">Sem marcação</option><option value="emergencia" ${p.reservaTipo==='emergencia'?'selected':''}>Reserva de emergência</option><option value="oportunidade" ${p.reservaTipo==='oportunidade'?'selected':''}>Reserva de oportunidade</option></select></label><label>Atualizar valor atual (${us?'US$':'R$'})<div style="display:flex;gap:8px"><input id="dV" type="number" step="0.01" value="${rd(p.qtd*p.precoAtual)}"><button onclick="setAt('${cid}','${id}')">Salvar</button></div></label>`;
+  if(rf)h+=`<div class="st" style="margin:6px 0 14px;align-items:center"><span>Usar como reserva de emergência</span><button class="sw ${p.reservaTipo==='emergencia'?'on':''}" role="switch" aria-checked="${p.reservaTipo==='emergencia'}" onclick="rv('${cid}','${id}')" title="Reserva de emergência" aria-label="Reserva de emergência"></button></div><label>Atualizar valor atual (${us?'US$':'R$'})<div style="display:flex;gap:8px"><input id="dV" type="number" step="0.01" value="${rd(p.qtd*p.precoAtual)}"><button onclick="setAt('${cid}','${id}')">Salvar</button></div></label>`;
   h+=`<div class="ac" style="justify-content:space-between"><button class="ib d" onclick="del('${cid}','${id}')" title="Excluir" aria-label="Excluir">${ic('trash')}</button><span class="acts"><button onclick="$('dDet').close();openLan('${cid}','out','${id}')">${rf?'Resgatar':'Vender'}</button><button class="p" onclick="$('dDet').close();openLan('${cid}','in','${id}')">${rf?'Aplicar mais':'Comprar'}</button></span></div>`}
  else{const i=d.items.find(x=>x.id===id),w=i.pct==null?100:i.pct;
   h=dh(esc(i.nome),cid,id)+`<div class="st"><span>Saldo atual</span><b class="num m">${R(i.saldoAtual)}</b></div><div class="st"><span>Entra no total</span><span class="num m">${N(w,1)}% · ${R((i.saldoAtual||0)*w/100)}</span></div>`+(i.inst?`<div class="st"><span>Instituição</span><span>${esc(i.inst)}</span></div>`:'')+`<label style="margin-top:14px">Corrigir saldo atual (R$)<div style="display:flex;gap:8px"><input id="dV" type="number" step="0.01" value="${(i.saldoAtual||0).toFixed(2)}"><button onclick="setSaldo('${cid}','${id}')">Salvar</button></div></label><div class="ac" style="justify-content:space-between"><button class="ib d" onclick="del('${cid}','${id}')" title="Excluir" aria-label="Excluir">${ic('trash')}</button><button class="p" onclick="$('dDet').close();openLan('${cid}','in','${id}')">${esc(c.entradaLabel||'Entrada')}</button></div>`}
@@ -305,6 +367,7 @@ function saveEdit(cid,id){const c=cat(cid),d=S.data[cid],rf=isRF(c),g=i=>parseFl
   p.ticker=t;p.inst=inst;if($('eC').value==='USD')p.moeda='USD';else delete p.moeda;p.precoAtual=rf?(p.qtd?a/p.qtd:0):a}
  else{const v=g('eA'),pc=g('eP');if(!(v>=0)||!(pc>=0))return alert('Valor inválido.');const i=d.items.find(x=>x.id===id);i.nome=t;i.inst=inst;i.saldoAtual=v;i.pct=pc}
  $('dDet').close();save()}
+function rv(cid,id){const p=S.data[cid].positions.find(x=>x.id===id);if(p.reservaTipo==='emergencia')delete p.reservaTipo;else p.reservaTipo='emergencia';save();if($('dDet').open)openDet(cid,id)}
 function marca(c,id,v){const p=S.data[c].positions.find(x=>x.id===id);if(v)p.reservaTipo=v;else delete p.reservaTipo;save()}
 function setAt(c,id){const v=parseFloat($('dV').value),p=S.data[c].positions.find(x=>x.id===id);if(!(v>=0)||!p.qtd)return;p.precoAtual=v/p.qtd;$('dDet').close();save()}
 function setSaldo(c,id){const v=parseFloat($('dV').value);if(!(v>=0))return;S.data[c].items.find(x=>x.id===id).saldoAtual=v;$('dDet').close();save()}
@@ -314,11 +377,11 @@ function del(cid,id){if(!confirm('Excluir este item e o histórico dele?'))retur
 
 /* ---------- Ajustes ---------- */
 function ajUI(){const s=S.settings;
- $('dAj').innerHTML=`<div class="dh"><h3>Ajustes</h3><button class="ib" onclick="$('dAj').close()" title="Fechar" aria-label="Fechar">${ic('x')}</button></div><label>Meta da reserva de emergência (R$)<input id="aE" type="number" step="100" value="${s.metaReserva||''}"></label><label>Valor que costuma ficar disponível (R$)<input id="aL" type="number" step="100" value="${s.livre||''}"></label><label>Chaves da API de cotações (separadas por vírgula)<input id="aT" value="${esc((s.brapiTokens||[]).join(','))}"></label>
- <div class="note" style="margin:-4px 0 14px">Meta anual, investido no ano, renda e PGBL ficam no Resumo e no Assistente.</div>
+ $('dAj').innerHTML=`<div class="dh"><h3>Ajustes</h3><button class="ib" onclick="$('dAj').close()" title="Fechar" aria-label="Fechar">${ic('x')}</button></div><label>Valor que costuma ficar disponível (R$)<input id="aL" type="number" step="100" value="${s.livre||''}"></label><label>Chaves da API de cotações (separadas por vírgula)<input id="aT" value="${esc((s.brapiTokens||[]).join(','))}"></label>
+ <div class="note" style="margin:-4px 0 14px">Metas, renda e PGBL ficam no Assistente, em Metas e perfil.</div>
  <div class="ac" style="justify-content:flex-start"><button onclick="exp()">Exportar backup</button><button onclick="$('aF').click()">Importar backup</button>${localStorage.getItem('carteira_bak')?'<button onclick="restaurar()">Restaurar versão anterior</button>':''}<input type="file" id="aF" accept=".json" hidden onchange="imp(this)"></div>
  <div class="ac" style="margin-top:14px"><button class="p" onclick="ajSave()">Salvar</button></div>`}
-function ajSave(){const s=S.settings,g=i=>parseFloat($(i).value)||0;Object.assign(s,{metaReserva:g('aE'),livre:g('aL'),brapiTokens:$('aT').value.split(',').map(x=>x.trim()).filter(Boolean)});AS.v=null;$('dAj').close();save()}
+function ajSave(){const s=S.settings,g=i=>parseFloat($(i).value)||0;Object.assign(s,{livre:g('aL'),brapiTokens:$('aT').value.split(',').map(x=>x.trim()).filter(Boolean)});AS.v=null;$('dAj').close();save()}
 function restaurar(){try{const b=JSON.parse(localStorage.getItem('carteira_bak'));if(!b||!confirm('Voltar para a versão que existia antes da última atualização vinda da nuvem?'))return;S=ens(b);$('dAj').close();save()}catch(e){}}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='carteira-backup-'+iso()+'.json';a.click()}
 function imp(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.categories)throw 0;if(!confirm('Substituir os dados atuais pelo backup?'))return;S=ens(d);$('dAj').close();save()}catch(e){alert('Arquivo de backup inválido.')}};r.readAsText(f)}
