@@ -144,7 +144,7 @@ dialog h3{font:600 20px Georgia,serif;margin:0 0 14px}
 <div id="ctM" class="note" style="color:var(--dn);margin:0 0 8px"></div>
 <div class="ac"><button onclick="auth('sair')">Sair</button><button onclick="auth('cad')">Criar conta</button><button class="p" onclick="auth('in')">Entrar</button></div></dialog>
 
-<script type="module" src="cloud-sync.js"></script>
+<script type="module" src="cloud-sync.js?v=6"></script>
 <script>
 const KEY='carteira_v1',$=i=>document.getElementById(i);
 const R=v=>(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -684,7 +684,10 @@ addEventListener('online',()=>{pull();doPush()});addEventListener('offline',()=>
 addEventListener('pagehide',()=>{if(pend)doPush()});
 setInterval(()=>{if(pend)doPush();else pull()},60000);setInterval(()=>{if(viraAno())save()},20000);
 $('ctS').textContent='Dados salvos apenas neste aparelho.';
-if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+// Sempre confere a versão nova do app na rede; se houver, recarrega uma vez sozinho.
+if('serviceWorker'in navigator){const tinha=!!navigator.serviceWorker.controller;let rec=false;
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(tinha&&!rec){rec=true;location.reload()}});
+ addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update().catch(()=>{});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')r.update().catch(()=>{})})}).catch(()=>{}))}
 if(viraAno())save();render();clock();setTimeout(()=>{if(!S.settings.gAt||Date.now()-S.settings.gAt>18e5)atualizarGastos(true)},1500);
 if(!S.settings.taxas.at||Date.now()-S.settings.taxas.at>432e5)taxas().then(ok=>ok&&save(true));
 </script>

@@ -1,9 +1,9 @@
 // Suba o número da versão sempre que fizer deploy de mudanças —
 // isso força o navegador a descartar o cache antigo.
-const CACHE = "carteira-v5";
+const CACHE = "carteira-v6";
 
 const ASSETS = [
-  "./", "./index.html", "./manifest.json", "./cloud-sync.js",
+  "./", "./index.html", "./manifest.json",
   "./icon-192.png", "./icon-512.png",
   "./icon-192-maskable.png", "./icon-512-maskable.png",
   "./apple-touch-icon.png", "./favicon-32x32.png", "./favicon-16x16.png", "./favicon.ico"
