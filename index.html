@@ -855,6 +855,408 @@
       .inl:focus {
         box-shadow: none;
       }
+
+      /* ---------- Assistente: painel orbital ---------- */
+      .orb {
+        max-width: 350px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        margin: 8px auto 22px;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .orb svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+        transform-origin: 50% 50%;
+        transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      .orb.ho svg {
+        transform: scale(1.1);
+      }
+      @media (hover: hover) {
+        .orb:hover svg {
+          transform: scale(1.1);
+        }
+        .orb:hover .rg text {
+          opacity: 1;
+        }
+      }
+      .orb.ho .rg text {
+        opacity: 1;
+      }
+      /* sombra suave sob cada linha, na cor da própria linha */
+      .orb .sh {
+        fill: none;
+        stroke: var(--rc);
+        stroke-linecap: round;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+      }
+      .orb .sh1 {
+        stroke-width: 13;
+        opacity: 0.17;
+      }
+      .orb .sh2 {
+        stroke-width: 24;
+        opacity: 0.08;
+      }
+      .orb .rg.on .sh1,
+      .orb .rg:hover .sh1 {
+        opacity: 0.3;
+      }
+      .orb .rg.on .sh2,
+      .orb .rg:hover .sh2 {
+        opacity: 0.15;
+      }
+      @media (prefers-color-scheme: dark) {
+        .orb .sh1 {
+          opacity: 0.26;
+        }
+        .orb .sh2 {
+          opacity: 0.13;
+        }
+      }
+      .orb .sp {
+        transform-box: view-box;
+        transform-origin: 200px 200px;
+        animation-name: orbSpin;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+        pointer-events: none;
+      }
+      .orb .rv {
+        animation-direction: reverse;
+      }
+      .orb .pl {
+        animation: orbPulse 5s ease-in-out infinite;
+      }
+      @keyframes orbSpin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes orbPulse {
+        0%,
+        100% {
+          opacity: 0.16;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      .orb .arc {
+        fill: none;
+        stroke: var(--rc);
+        stroke-width: 5.4;
+        stroke-linecap: round;
+        opacity: 0.88;
+        transition:
+          opacity 0.3s,
+          stroke-width 0.3s;
+      }
+      .orb .tk {
+        fill: none;
+        stroke: var(--rc);
+        stroke-width: 5;
+        opacity: 0.6;
+      }
+      .orb .dc {
+        fill: none;
+        stroke-width: 3.2;
+        stroke-linecap: round;
+      }
+      .orb .nd {
+        fill: var(--rc);
+        stroke: var(--bg);
+        stroke-width: 2.5;
+      }
+      .orb .rg {
+        cursor: pointer;
+        outline: none;
+      }
+      .orb .rg:hover .arc,
+      .orb .rg:focus-visible .arc {
+        opacity: 1;
+      }
+      .orb .rg.on .arc {
+        opacity: 1;
+        stroke-width: 7;
+      }
+      .orb .rg text {
+        font: 700 11.5px -apple-system, "Segoe UI", Arial, sans-serif;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        stroke-linejoin: round;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+      /* texto em 3 camadas: borda colorida, miolo de fundo (recorta a linha) e letra */
+      .orb .rg text.b1 {
+        fill: var(--rc);
+        stroke: var(--rc);
+        stroke-width: 13;
+      }
+      .orb .rg text.b2 {
+        fill: var(--bg);
+        stroke: var(--bg);
+        stroke-width: 8.5;
+      }
+      .orb .rg text.b3 {
+        fill: var(--ink);
+        stroke: none;
+      }
+      .orb .rg.on text.b1 {
+        fill: var(--ink);
+        stroke: var(--ink);
+      }
+      .orb .rg.on text.b2 {
+        fill: var(--rc);
+        stroke: var(--rc);
+      }
+      .orb .rg.on text.b3 {
+        fill: #2b1500;
+      }
+      .orb .core {
+        cursor: pointer;
+        outline: none;
+      }
+      .orb .core circle.cb {
+        fill: var(--card);
+        stroke: #ff9f1c;
+        stroke-width: 4;
+      }
+      .orb .core .t1 {
+        font: 700 9px -apple-system, "Segoe UI", Arial, sans-serif;
+        letter-spacing: 0.12em;
+        fill: var(--mut);
+        text-anchor: middle;
+      }
+      .orb .core .t2 {
+        font: 700 28px -apple-system, "Segoe UI", Arial, sans-serif;
+        text-anchor: middle;
+        font-variant-numeric: lining-nums tabular-nums;
+      }
+      .orb .core .t3 {
+        font: 500 9.5px -apple-system, "Segoe UI", Arial, sans-serif;
+        letter-spacing: 0.06em;
+        fill: var(--mut);
+        text-anchor: middle;
+      }
+      .orbh {
+        text-align: center;
+        font-size: 12px;
+        color: var(--mut);
+        margin: -4px 0 10px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .orb .sp,
+        .orb .pl {
+          animation: none;
+        }
+      }
+      /* ---------- Assistente: aparência holográfica (ouro sobre azul-marinho) ---------- */
+      .hx {
+        --bg: #060c18;
+        --card: rgba(11, 20, 38, 0.72);
+        --ink: #f6ecd2;
+        --mut: #9aa7bb;
+        --line: rgba(255, 190, 70, 0.17);
+        --acc: #ffb627;
+        --gold: #ffcf5c;
+        --up: #7fe3b4;
+        --dn: #ff7b5c;
+        color-scheme: dark;
+        color: var(--ink);
+        position: relative;
+        border-radius: 22px;
+        padding: 14px 14px 18px;
+        border: 1px solid rgba(255, 182, 39, 0.2);
+        background:
+          radial-gradient(ellipse 70% 38% at 50% 0%, rgba(255, 170, 30, 0.16), transparent 70%),
+          linear-gradient(rgba(255, 190, 70, 0.045) 1px, transparent 1px) 0 0 / 34px 34px,
+          linear-gradient(90deg, rgba(255, 190, 70, 0.045) 1px, transparent 1px) 0 0 / 34px 34px,
+          linear-gradient(180deg, #091124 0%, #050a14 100%);
+        box-shadow:
+          0 0 0 1px rgba(255, 182, 39, 0.05) inset,
+          0 24px 60px -30px rgba(255, 160, 20, 0.35);
+      }
+      .hx .card {
+        border-color: rgba(255, 190, 70, 0.2);
+        box-shadow:
+          0 0 0 1px rgba(255, 190, 70, 0.04) inset,
+          0 12px 30px -20px rgba(255, 170, 30, 0.4);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+      }
+      .hx .card h4,
+      .hx .lb,
+      .hx th {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        letter-spacing: 0.14em;
+      }
+      .hx .card h4 {
+        color: #ffcf5c;
+        text-shadow: 0 0 12px rgba(255, 190, 70, 0.45);
+      }
+      .hx .sr,
+      .hx .num {
+        text-shadow: 0 0 14px rgba(255, 190, 70, 0.16);
+      }
+      .hx button {
+        background: rgba(255, 190, 70, 0.07);
+        border-color: rgba(255, 190, 70, 0.3);
+        color: var(--ink);
+      }
+      .hx button:hover {
+        background: rgba(255, 190, 70, 0.14);
+        box-shadow: 0 0 14px -2px rgba(255, 180, 40, 0.5);
+      }
+      .hx button.ib,
+      .hx button.g {
+        background: none;
+        border: 0;
+        box-shadow: none;
+      }
+      .hx button.p,
+      .hx .chip.on,
+      .hx .seg button.on {
+        background: var(--acc);
+        border-color: var(--acc);
+        color: #1a1200;
+        box-shadow: 0 0 16px -2px rgba(255, 182, 39, 0.6);
+      }
+      .hx .chip {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+      }
+      .hx input,
+      .hx select {
+        background: rgba(255, 255, 255, 0.045);
+        border-color: rgba(255, 190, 70, 0.22);
+        color: var(--ink);
+      }
+      .hx input:focus,
+      .hx select:focus {
+        outline: 0;
+        border-color: var(--acc);
+        box-shadow: 0 0 0 3px rgba(255, 182, 39, 0.18);
+      }
+      .hx .ins.alerta .dot,
+      .hx .ins .dot {
+        box-shadow: 0 0 10px currentColor;
+      }
+      .hx .ins.alerta .dot {
+        background: #ffb627;
+        color: #ffb627;
+      }
+      .hx .ins.crit .dot {
+        background: var(--dn);
+        color: var(--dn);
+      }
+      .hx .ins.ok .dot {
+        color: var(--up);
+      }
+      .hx .bar i {
+        box-shadow: 0 0 10px rgba(255, 182, 39, 0.55);
+      }
+      .hx .tag {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      /* esfera de partículas (canvas) atrás dos anéis */
+      .hx .orb {
+        position: relative;
+        margin-top: 4px;
+      }
+      .hx .orb canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        transform-origin: 50% 50%;
+        transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      .hx .orb.ho canvas {
+        transform: scale(1.1);
+      }
+      @media (hover: hover) {
+        .hx .orb:hover canvas {
+          transform: scale(1.1);
+        }
+      }
+      .hx .orb svg {
+        position: relative;
+      }
+      /* anéis: linhas finas de luz */
+      .hx .orb .arc {
+        stroke-width: 2.6;
+        opacity: 0.95;
+      }
+      .hx .orb .rg.on .arc {
+        stroke-width: 4.2;
+      }
+      .hx .orb .tk {
+        stroke-width: 3;
+        opacity: 0.45;
+      }
+      .hx .orb .sh1 {
+        stroke-width: 8;
+        opacity: 0.2;
+      }
+      .hx .orb .sh2 {
+        stroke-width: 18;
+        opacity: 0.08;
+      }
+      .hx .orb .rg.on .sh1,
+      .hx .orb .rg:hover .sh1 {
+        opacity: 0.5;
+      }
+      .hx .orb .rg.on .sh2,
+      .hx .orb .rg:hover .sh2 {
+        opacity: 0.24;
+      }
+      .hx .orb .nd {
+        stroke: #fff3c4;
+        stroke-width: 1.5;
+        filter: drop-shadow(0 0 4px var(--rc));
+      }
+      .hx .orb .rg text {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+      .hx .orb .core circle.cb {
+        fill: rgba(6, 12, 24, 0.8);
+        stroke: #ffb627;
+        stroke-width: 1.6;
+        filter: drop-shadow(0 0 8px rgba(255, 182, 39, 0.75));
+      }
+      .hx .orb .core .t1,
+      .hx .orb .core .t3 {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        fill: #c9b27a;
+      }
+      .hx .orb .core .t2 {
+        font-family: "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
+        font-weight: 300;
+        filter: drop-shadow(0 0 6px currentColor);
+      }
+      .hx .orbh {
+        color: #c9b27a;
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 11px;
+      }
+      @media (max-width: 520px) {
+        .hx {
+          padding: 10px 10px 14px;
+          border-radius: 18px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1102,7 +1504,7 @@
         PGN = {},
         UID = null,
         L = {},
-        AS = { v: null, d: 365, n: 0, tab: "diag", all: 0 };
+        AS = { v: null, d: 365, n: 0, tab: "diag", all: 0, g: null };
       /* ---------- Estado, categorias e dados padrão ---------- */
       const DEF = () => ({
         categories: [
@@ -1388,6 +1790,7 @@
           .join("");
         $("v").innerHTML =
           TAB === "resumo" ? vResumo() : TAB === "assist" ? vAssist() : vGuia(cat(TAB));
+        if (TAB === "assist") holoStart();
         stUI();
       }
       function go(t) {
@@ -1656,6 +2059,7 @@
         if (!g && !s.rescisao && !s.renda)
           return [
             ...contasIns(),
+            ...fiadoIns(),
             ...projIns(),
             {
               lv: "info",
@@ -1664,7 +2068,7 @@
               act: { l: "Novo lançamento", f: "openLan()" },
             },
           ];
-        o.push(...contasIns(), ...projIns());
+        o.push(...contasIns(), ...fiadoIns(), ...projIns());
         all()
           .filter((x) => x.lib && x.lib >= hoje() && x.at > 0)
           .forEach((x) => {
@@ -2183,6 +2587,300 @@
  <div class="card" style="margin-top:14px"><h4>Comparativo de alternativas para ${R(v)} em ${d >= 365 ? N(d / 365, 1) + " ano(s)" : N(d / 30, 0) + " meses"}</h4><div class="sc"><table><thead><tr><th>Alternativa</th><th class="r">Taxa</th><th class="r">Ganho líquido</th><th class="r">Líquido ao ano</th><th>Liquidez</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${r.o.n}<div class="mut" style="font-size:12px">${r.o.o}</div></td><td class="r">${r.o.k === "poup" ? "-" : (r.o.k === "ipca" ? "IPCA + " : "") + `<input type="text" inputmode="decimal" autocomplete="off" data-m value="${S.settings.refs[r.o.k] || r.o.p}" onchange="S.settings.refs['${r.o.k}']=num(this.value);save()">`}</td><td class="r num m">${R(r.g)}</td><td class="r num">${N(r.aa)}%</td><td>${r.o.l}</td></tr>`).join("")}</tbody></table></div>
  <div class="note">Simulação com o CDI de ${N(s.taxas.cdi)}% a.a., IR regressivo já descontado (exceto LCI/LCA e poupança). Os percentuais do CDI são referências editáveis: use os que você encontrar na sua corretora. Isto não é recomendação de investimento.</div></div>`;
       }
+
+      /* ---------- Integração com o app Fiado (caderneta) ---------- */
+      // O Fiado guarda as pessoas em "caderneta_pessoas_v2" neste aparelho e envia uma cópia à
+      // nuvem na chave "caderneta". Aqui só LEMOS esses dados; nada é gravado no Fiado.
+      const FK = "carteira_fiado_v1";
+      let FI = null;
+      function fiadoSet(pessoas, em, origem) {
+        if (!Array.isArray(pessoas)) return false;
+        if (FI) {
+          if (em < FI.em) return false;
+          if (em === FI.em && (em > 0 || JSON.stringify(FI.pessoas) === JSON.stringify(pessoas))) return false;
+        }
+        FI = { pessoas, em, origem, lido: Date.now() };
+        try {
+          localStorage.setItem(FK, JSON.stringify(FI));
+        } catch (e) {}
+        return true;
+      }
+      function fiadoLer() {
+        let ch = false;
+        try {
+          const r = localStorage.getItem("caderneta_pessoas_v2");
+          if (r) {
+            const a = JSON.parse(r);
+            const t = parseInt(localStorage.getItem("caderneta_updatedAt_v2") || "0", 10) || 0;
+            ch = fiadoSet(a, t, "este aparelho");
+          }
+        } catch (e) {}
+        return ch;
+      }
+      function fiadoCapt(d) {
+        try {
+          const c = d && d.caderneta;
+          if (c && Array.isArray(c.pessoas) && fiadoSet(c.pessoas, +c.updatedAt || 0, "nuvem"))
+            fiadoAtual();
+        } catch (e) {}
+      }
+      function fiadoAtual() {
+        if (typeof TAB !== "undefined" && TAB === "assist" && AS.tab === "fiado") render();
+      }
+      try {
+        const r = JSON.parse(localStorage.getItem(FK) || "null");
+        if (r && Array.isArray(r.pessoas)) FI = r;
+      } catch (e) {}
+      const MES3 = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+      const MESL = [
+        "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+      ];
+      const fmK = (k) => MES3[+k.slice(5) - 1] + "/" + k.slice(0, 4);
+      const addK = (k, n) => {
+        const d = new Date(+k.slice(0, 4), +k.slice(5) - 1 + n, 1);
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      };
+      const difK = (a, b) => (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5) - +a.slice(5));
+      const plr = (n, a, b) => n + " " + (n === 1 ? a : b);
+      const rd2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
+      const fdDias = (i) => {
+        if (!i) return null;
+        const [y, m, d] = String(i).slice(0, 10).split("-").map(Number),
+          h = new Date();
+        h.setHours(0, 0, 0, 0);
+        return Math.round((h - new Date(y, m - 1, d)) / 864e5);
+      };
+      const fdTempo = (i) => {
+        const d = fdDias(i);
+        if (d == null) return "";
+        if (d < 0) return "daqui a " + plr(-d, "dia", "dias");
+        if (d === 0) return "hoje";
+        if (d === 1) return "há 1 dia";
+        if (d < 30) return "há " + d + " dias";
+        const m = Math.floor(d / 30);
+        if (m < 12) return "há " + plr(m, "mês", "meses");
+        const a = Math.floor(m / 12),
+          rm = m % 12;
+        return "há " + plr(a, "ano", "anos") + (rm ? " e " + plr(rm, "mês", "meses") : "");
+      };
+      function fiadoCalc() {
+        if (!FI || !Array.isArray(FI.pessoas)) return null;
+        const M = hoje().slice(0, 7),
+          now = new Date(),
+          it = [],
+          quit = [];
+        let rec = 0,
+          pend = 0,
+          qPag = 0,
+          qPend = 0,
+          aReceber = 0,
+          unicoAb = 0,
+          recorr = 0;
+        FI.pessoas.forEach((p) => {
+          if (!p || !p.nome) return;
+          const v = +p.valor || 0,
+            h = Array.isArray(p.historico) ? p.historico : [];
+          if (p.tipo === "parcelado") {
+            let tot = p.parcelasTotal,
+              pg = p.parcelasPagas;
+            if (tot == null || pg == null) {
+              tot = v > 0 ? Math.round((+p.valorTotal || 0) / v) : 0;
+              pg = v > 0 ? Math.round(((+p.valorTotal || 0) - (+p.valorRestante || 0)) / v) : 0;
+            }
+            const rem = Math.max(0, tot - pg);
+            if (p.status === "quitado" || rem <= 0) {
+              quit.push({ n: p.nome, v });
+              return;
+            }
+            const resta = typeof p.valorRestante === "number" ? p.valorRestante : v * rem,
+              pagoMes = pg > 0 && p.cicloMes === M,
+              ult = pg > 0 ? p.cicloMes : null,
+              ini = (p.dataInicio || p.criadoEm || "").slice(0, 7),
+              semM = ult ? difK(ult, M) : ini ? difK(ini, M) : 0,
+              fim = addK(pagoMes ? addK(M, 1) : M, rem - 1);
+            aReceber += resta;
+            let det = pg + " de " + tot + " parcelas pagas · faltam " + plr(rem, "parcela", "parcelas");
+            det += " · previsão de quitação em " + fmK(fim);
+            if (pagoMes) det += " · parcela deste mês já paga";
+            else if (!ult && semM >= 2) det += " · nenhuma parcela paga desde " + fmK(ini);
+            else if (ult && semM >= 2) det += " · último pagamento em " + fmK(ult);
+            const x = {
+              n: p.nome, k: "parcelado", v, pago: pagoMes, det, resta, rem, tot, pg, fim,
+              atraso: !pagoMes && semM >= 2 ? semM : 0,
+            };
+            it.push(x);
+            if (pagoMes) {
+              rec += v;
+              qPag++;
+            } else {
+              pend += v;
+              qPend++;
+            }
+            return;
+          }
+          if (p.tipo === "mensal" && p.periodicidade === "anual") {
+            const pago = p.status === "pago",
+              pagoMes = h.some((e) => e.mes === M && e.status === "pago"),
+              mv = +p.mesVencimento || 0;
+            let alvo = new Date(now.getFullYear(), mv - 1, 1);
+            if (alvo < new Date(now.getFullYear(), now.getMonth(), 1))
+              alvo = new Date(now.getFullYear() + 1, mv - 1, 1);
+            const df = (alvo.getFullYear() - now.getFullYear()) * 12 + (alvo.getMonth() - now.getMonth()),
+              nome = MESL[mv - 1] || "",
+              det = pago
+                ? "pago neste ciclo anual · próximo vencimento em " + nome
+                : df <= 0
+                  ? "vence em " + nome + " (este mês)"
+                  : "vence em " + plr(df, "mês", "meses") + " (" + nome + ")";
+            it.push({ n: p.nome, k: "anual", v, pago, det, venceMes: !pago && df <= 0, df });
+            if (pagoMes) rec += v;
+            if (!pago && df <= 0) {
+              pend += v;
+              qPend++;
+            } else if (pagoMes) qPag++;
+            return;
+          }
+          if (p.tipo === "mensal") {
+            const pago = p.cicloMes === M && p.status === "pago";
+            let seq = 0;
+            for (const e of h) {
+              if (e.status === "pendente") seq++;
+              else break;
+            }
+            const h6 = h.slice(0, 6),
+              ok6 = h6.filter((e) => e.status === "pago").length;
+            let det = pago ? "já pagou neste mês" : "ainda não pagou neste mês";
+            if (h6.length) det += " · pagou " + ok6 + " dos últimos " + h6.length + " meses registrados";
+            if (!pago && seq) det += " · " + plr(seq, "mês anterior", "meses anteriores") + " sem pagamento";
+            recorr += v;
+            it.push({ n: p.nome, k: "mensal", v, pago, det, atraso: !pago ? seq : 0 });
+            if (pago) {
+              rec += v;
+              qPag++;
+            } else {
+              pend += v;
+              qPend++;
+            }
+            return;
+          }
+          // pagamento único (avulso)
+          const tv = +p.valorTotal || 0,
+            pago = p.status === "pago",
+            dias = p.data ? fdDias(p.data) : null;
+          let det = pago ? "pago" : p.data ? "em aberto " + fdTempo(p.data) : "pagamento único em aberto";
+          let juros = 0;
+          if (!pago && +p.taxaAtraso > 0 && dias > 0) {
+            juros = rd2(tv * (p.taxaAtraso / 100) * (dias / 30));
+            det += " · juros de atraso estimados em " + R(juros) + " (" + N(p.taxaAtraso) + "% ao mês)";
+          }
+          it.push({ n: p.nome, k: "unico", v: tv, pago, det, dias: pago ? 0 : dias || 0, juros });
+          if (!pago) {
+            aReceber += tv;
+            unicoAb += tv;
+          }
+        });
+        return { it, M, rec, pend, qPag, qPend, aReceber, unicoAb, recorr, quit };
+      }
+      function fiadoIns() {
+        const c = fiadoCalc(),
+          o = [];
+        if (!c || !c.it.length) return o;
+        const act = { l: "Ver Fiado", f: "AS.tab='fiado';AS.g='hoje';render()" },
+          nm = (a) =>
+            a
+              .slice(0, 3)
+              .map((x) => x.n)
+              .join(", ") + (a.length > 3 ? " e mais " + (a.length - 3) : "");
+        const at = c.it.filter((x) => x.atraso >= 2 && !x.pago),
+          unA = c.it.filter((x) => x.k === "unico" && !x.pago && x.dias > 30),
+          pe = c.it.filter((x) => !x.pago && x.k !== "unico" && (x.k !== "anual" || x.venceMes)),
+          dia = new Date().getDate();
+        if (at.length)
+          o.push({
+            lv: "alerta", crit: 1,
+            t: "Fiado: " + plr(at.length, "pessoa está", "pessoas estão") + " com 2 meses ou mais sem pagar",
+            d: nm(at) + ". Vale entrar em contato antes que o atraso aumente.",
+            act,
+          });
+        if (unA.length)
+          o.push({
+            lv: "alerta",
+            t: "Fiado: " + plr(unA.length, "valor avulso", "valores avulsos") + " em aberto há mais de 30 dias",
+            d: nm(unA) + " (" + R(unA.reduce((a, x) => a + x.v, 0)) + ")." +
+              (unA.some((x) => x.juros) ? " Há juros de atraso estimados no detalhe." : ""),
+            act,
+          });
+        if (pe.length) {
+          const val = pe.reduce((a, x) => a + x.v, 0);
+          o.push({
+            lv: dia >= 20 ? "alerta" : "info",
+            t: "Fiado: " + pe.length + " de " + (c.qPag + c.qPend) + " ainda não pagaram neste mês (" + R(val) + ")",
+            d: nm(pe) + ". Já recebido no mês: " + R(c.rec) + ".",
+            act,
+          });
+        } else if (c.qPag > 0)
+          o.push({
+            lv: "ok",
+            t: "Fiado: todos os pagamentos deste mês foram recebidos",
+            d: R(c.rec) + " recebidos. Total ainda a receber (parcelados e avulsos): " + R(c.aReceber) + ".",
+            act,
+          });
+        const fim = c.it.filter((x) => x.k === "parcelado" && x.rem <= 2);
+        if (fim.length)
+          o.push({
+            lv: "info",
+            t: "Fiado: " + plr(fim.length, "parcelado está", "parcelados estão") + " perto de quitar",
+            d: fim.map((x) => x.n + " (faltam " + plr(x.rem, "parcela", "parcelas") + ")").join("; ") + ".",
+            act,
+          });
+        return o;
+      }
+      function fiadoRow(x) {
+        const lv = x.pago ? "ok" : x.atraso >= 2 ? "crit" : x.atraso || x.dias > 30 ? "alerta" : "info",
+          tg = x.k === "parcelado" ? "Parcelado" : x.k === "anual" ? "Anual" : x.k === "unico" ? "Avulso" : "Mensal",
+          bar =
+            x.k === "parcelado" && x.tot
+              ? `<div class="bar"><i style="width:${Math.min(100, (x.pg / x.tot) * 100).toFixed(1)}%"></i></div>`
+              : "";
+        return `<div class="ins ${lv}"><i class="dot"></i><div class="n"><b>${esc(x.n)}</b><span class="tag">${tg}</span><div>${esc(x.det)}</div>${bar}</div><b class="num m" style="white-space:nowrap">${R(x.v)}</b></div>`;
+      }
+      function tFiado() {
+        const c = fiadoCalc();
+        if (!c || (!c.it.length && !c.quit.length))
+          return `<div class="card emp">${c ? "O app Fiado ainda não tem pessoas cadastradas." : "Ainda não encontrei os dados do app Fiado. Abra o Fiado uma vez, no mesmo aparelho ou com a mesma conta, e volte aqui."}<div class="pg"><button onclick="fiadoLer();render()">Atualizar</button></div></div>`;
+        const tot = c.rec + c.pend,
+          pc = tot ? (c.rec / tot) * 100 : 0,
+          nao = c.it.filter((x) => !x.pago && x.k !== "unico" && (x.k !== "anual" || x.venceMes)),
+          sim = c.it.filter((x) => x.pago && x.k !== "unico"),
+          par = c.it.filter((x) => x.k === "parcelado").sort((a, b) => a.rem - b.rem),
+          uni = c.it.filter((x) => x.k === "unico" && !x.pago),
+          ana = c.it.filter((x) => x.k === "anual" && !x.venceMes),
+          ord = (a) => a.slice().sort((x, y) => (y.atraso || 0) - (x.atraso || 0) || x.n.localeCompare(y.n, "pt-BR")),
+          mes = MESL[+c.M.slice(5) - 1] + " de " + c.M.slice(0, 4),
+          fonte =
+            "Fonte: " + FI.origem + ", dados do Fiado de " +
+            (FI.em ? new Date(FI.em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "data desconhecida") +
+            ".",
+          cd = (t, l, ex) =>
+            l.length ? `<div class="card" style="margin-top:14px"><h4>${t} · ${l.length}</h4>${l.map(fiadoRow).join("")}${ex || ""}</div>` : "";
+        const prox = par
+          .filter((x) => x.rem > 0)
+          .slice(0, 3)
+          .map((x) => x.n + " em " + fmK(x.fim))
+          .join("; ");
+        return `<div class="card"><h4>Fiado · ${mes}</h4><div class="three"><div><div class="lb">Recebido no mês</div><b class="sr m up">${R(c.rec)}</b></div><div><div class="lb">Falta receber no mês</div><b class="sr m ${c.pend ? "dnc" : ""}">${R(c.pend)}</b></div><div><div class="lb">Total a receber</div><b class="sr m">${R(c.aReceber)}</b></div></div><div class="bar g" style="margin-top:14px"><i style="width:${pc.toFixed(1)}%"></i></div><div class="note" style="margin:0">${c.qPag} de ${c.qPag + c.qPend} já pagaram neste mês (${P(pc)} do valor).${c.recorr ? " Recorrência mensal total: " + R(c.recorr) + "." : ""}${prox ? " Próximas quitações previstas: " + esc(prox) + "." : ""}${c.unicoAb ? " Avulsos em aberto: " + R(c.unicoAb) + "." : ""}</div></div>` +
+          cd("Ainda não pagaram neste mês", ord(nao)) +
+          cd("Já pagaram neste mês", sim) +
+          cd("Parcelados: quanto falta", par) +
+          cd("Avulsos em aberto", uni) +
+          cd("Anuais", ana) +
+          (c.quit.length
+            ? `<div class="note">Quitados: ${c.quit.map((x) => esc(x.n)).join(", ")}.</div>`
+            : "") +
+          `<div class="note">${esc(fonte)} "Total a receber" soma o que falta dos parcelados e os avulsos em aberto, como no relatório do Fiado. A previsão de quitação supõe uma parcela paga por mês.<div class="pg"><button onclick="fiadoLer();render()">Atualizar</button></div></div>`;
+      }
+
       /* ---------- Assistente: abas e navegação ---------- */
       const GR = [
         [
@@ -2193,6 +2891,7 @@
             ["agenda", "Agenda"],
             ["divida", "Dívidas"],
             ["custo", "Custo de vida"],
+            ["fiado", "Fiado"],
           ],
         ],
         [
@@ -2214,11 +2913,244 @@
           ],
         ],
       ];
+
+      /* ---------- Esfera holográfica de partículas ---------- */
+      const HOLO = { pts: null, arcs: null, raf: 0, last: 0, t: 0 };
+      function holoBuild() {
+        const N = 1000,
+          g = Math.PI * (3 - Math.sqrt(5)),
+          rnd = (i) => {
+            const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+            return x - Math.floor(x);
+          };
+        HOLO.pts = [];
+        for (let i = 0; i < N; i++) {
+          const y = 1 - (i / (N - 1)) * 2,
+            r = Math.sqrt(1 - y * y),
+            th = g * i,
+            k = rnd(i),
+            sh = k < 0.62 ? 1 : k < 0.86 ? 0.74 : 0.46;
+          HOLO.pts.push({ x: Math.cos(th) * r, y, z: Math.sin(th) * r, sh, ph: rnd(i + 9) * 6.28, sp: 0.4 + rnd(i + 3) * 1.4, sz: 0.5 + rnd(i + 5) });
+        }
+        // faixas de luz: grandes círculos inclinados que giram em ritmos diferentes
+        HOLO.arcs = [];
+        for (let i = 0; i < 30; i++) {
+          HOLO.arcs.push({ tx: rnd(i + 21) * Math.PI, tz: rnd(i + 33) * Math.PI, sp: (rnd(i + 45) - 0.5) * 0.5, sh: 0.55 + rnd(i + 57) * 0.5, a: 0.3 + rnd(i + 69) * 0.42, w: 0.6 + rnd(i + 81) * 1.4, from: rnd(i + 93) * 6.28, span: 1.2 + rnd(i + 105) * 3.6 });
+        }
+      }
+      function holoFrame(c, t) {
+        const dpr = Math.min(2, window.devicePixelRatio || 1),
+          w = c.clientWidth,
+          h = c.clientHeight;
+        if (!w || !h) return;
+        if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+          c.width = Math.round(w * dpr);
+          c.height = Math.round(h * dpr);
+        }
+        const x = c.getContext("2d");
+        x.setTransform(dpr, 0, 0, dpr, 0, 0);
+        x.clearRect(0, 0, w, h);
+        x.globalCompositeOperation = "lighter";
+        const cx = w / 2,
+          cy = h / 2,
+          R = w * 0.44,
+          ay = t * 0.00016,
+          ax = 0.42 + Math.sin(t * 0.00007) * 0.12,
+          sy = Math.sin(ay),
+          cyy = Math.cos(ay),
+          sx = Math.sin(ax),
+          cxx = Math.cos(ax),
+          rot = (px, py, pz) => {
+            const x1 = px * cyy + pz * sy,
+              z1 = -px * sy + pz * cyy,
+              y2 = py * cxx - z1 * sx,
+              z2 = py * sx + z1 * cxx;
+            return [x1, y2, z2];
+          };
+        // brilho central
+        const gr = x.createRadialGradient(cx, cy, 0, cx, cy, R * 1.05);
+        gr.addColorStop(0, "rgba(255,190,70,.20)");
+        gr.addColorStop(0.55, "rgba(255,150,30,.07)");
+        gr.addColorStop(1, "rgba(255,140,20,0)");
+        x.fillStyle = gr;
+        x.beginPath();
+        x.arc(cx, cy, R * 1.05, 0, 6.2832);
+        x.fill();
+        // faixas de luz
+        HOLO.arcs.forEach((a) => {
+          const sa = Math.sin(a.tx + t * 0.00004 * a.sp * 8),
+            ca = Math.cos(a.tx + t * 0.00004 * a.sp * 8),
+            sb = Math.sin(a.tz),
+            cb = Math.cos(a.tz),
+            st = a.from + t * 0.0003 * a.sp * 3,
+            seg = 46;
+          x.beginPath();
+          for (let i = 0; i <= seg; i++) {
+            const u = st + (i / seg) * a.span,
+              px0 = Math.cos(u) * a.sh,
+              py0 = Math.sin(u) * a.sh,
+              // inclina o círculo
+              py1 = py0 * ca,
+              pz1 = py0 * sa,
+              px2 = px0 * cb - py1 * sb,
+              py2 = px0 * sb + py1 * cb,
+              q = rot(px2, py2, pz1);
+            (i ? x.lineTo : x.moveTo).call(x, cx + q[0] * R, cy + q[1] * R);
+          }
+          x.strokeStyle = `rgba(255,${176 + ((a.w * 30) | 0)},70,${a.a})`;
+          x.lineWidth = a.w;
+          x.stroke();
+        });
+        // partículas
+        const P = HOLO.pts;
+        for (let i = 0; i < P.length; i++) {
+          const p = P[i],
+            j = 1 + Math.sin(t * 0.0011 * p.sp + p.ph) * 0.05,
+            q = rot(p.x * p.sh * j, p.y * p.sh * j, p.z * p.sh * j),
+            d = (q[2] + 1) / 2,
+            al = 0.25 + d * 0.75,
+            sz = (0.7 + d * 1.9) * p.sz;
+          x.fillStyle = d > 0.55 ? `rgba(255,${205 + ((d * 40) | 0)},${110 + ((d * 80) | 0)},${al})` : `rgba(255,150,30,${al})`;
+          x.fillRect(cx + q[0] * R - sz / 2, cy + q[1] * R - sz / 2, sz, sz);
+        }
+      }
+      function holoLoop(now) {
+        const c = document.getElementById("orbc");
+        if (!c || TAB !== "assist") {
+          HOLO.raf = 0;
+          return;
+        }
+        if (now - HOLO.last > 38) {
+          HOLO.last = now;
+          holoFrame(c, now);
+        }
+        HOLO.raf = requestAnimationFrame(holoLoop);
+      }
+      function holoStart() {
+        if (!HOLO.pts) holoBuild();
+        const c = document.getElementById("orbc");
+        if (!c) return;
+        if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          requestAnimationFrame(() => holoFrame(c, 2500));
+          return;
+        }
+        if (!HOLO.raf) HOLO.raf = requestAnimationFrame(holoLoop);
+      }
+      addEventListener("resize", () => {
+        if (TAB === "assist" && !HOLO.raf) holoStart();
+      });
+
+      /* ---------- Assistente: painel orbital ---------- */
+      // Círculos concêntricos que giram devagar (uns no sentido horário, outros no anti-horário).
+      // O nome de cada círculo corre sobre a própria linha e gira junto com ela.
+      // [id, raio, sentido (1 horário, -1 anti-horário), segundos por volta, cor, nome, guia direta (ou null = abre opções)]
+      const ORB = [
+        ["hoje", 168, 1, 120, "#ffc23d", "Hoje", null],
+        ["plan", 128, -1, 90, "#ff9b21", "Planejar", null],
+        ["cx", 88, 1, 70, "#ffe08a", "Caixa", null],
+      ];
+      const orbFase = (per) => "animation-duration:" + per + "s;animation-delay:-" + ((Date.now() / 1000) % per).toFixed(2) + "s";
+      const grpDe = (t) => GR.find((x) => x[2].some((y) => y[0] === t)) || GR[0];
+      function optsHtml(g, t) {
+        return g[2]
+          .map(
+            (x) =>
+              `<button class="chip ${t === x[0] ? "on" : ""}" style="${t === x[0] ? "" : "border-style:dashed"}" onclick="AS.tab='${x[0]}';AS.g='${g[0]}';render()">${x[1]}</button>`,
+          )
+          .join("");
+      }
+      // Legenda e opções só aparecem depois que um círculo de grupo (Hoje, Caixa) é tocado.
+      function boxHtml(g, t) {
+        return g
+          ? `<div class="orbh">Opções de ${g[1]}</div><div class="chips" style="justify-content:center">${optsHtml(g, t)}</div>`
+          : "";
+      }
+      function asGrp(id) {
+        AS.g = AS.g === id ? null : id;
+        document.querySelectorAll("#orb .rg[data-k='g']").forEach((e) => e.classList.toggle("on", e.dataset.g === AS.g));
+        const g = AS.g ? GR.find((x) => x[0] === AS.g) : null,
+          o = $("asBox");
+        if (o) o.innerHTML = boxHtml(g, AS.tab || "diag");
+      }
+      function asGo(t) {
+        AS.tab = t;
+        AS.g = null;
+        render();
+      }
+      // Em telas de toque não existe "passar o mouse": tocar no painel faz o mesmo efeito (aumenta e mostra os nomes).
+      let ORBHO = false;
+      document.addEventListener("pointerdown", (e) => {
+        if (e.pointerType === "mouse") return;
+        const on = !!(e.target.closest && e.target.closest("#orb"));
+        if (on !== ORBHO) {
+          ORBHO = on;
+          if (on) orbRndAll();
+          const el = $("orb");
+          if (el) el.classList.toggle("ho", on);
+        }
+      });
+      // O nome de cada linha aparece num ponto aleatório dela a cada vez que o mouse (ou o toque) chega.
+      function orbRnd(g) {
+        const v = (10 + Math.random() * 80).toFixed(1) + "%";
+        g.querySelectorAll("textPath").forEach((tp) => tp.setAttribute("startOffset", v));
+      }
+      function orbRndAll() {
+        document.querySelectorAll("#orb .rg").forEach(orbRnd);
+      }
+      function orbKey(ev, f) {
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          f();
+        }
+      }
+      function orbHtml(na) {
+        const t = AS.tab || "diag",
+          arcs = (r) => {
+            const c = 2 * Math.PI * r;
+            return [0.34, 0.05, 0.16, 0.05, 0.28, 0.12].map((f) => (c * f).toFixed(1)).join(" ");
+          },
+          spin = (per, dir, inner) => `<g class="sp ${dir < 0 ? "rv" : ""}" style="${orbFase(per)}">${inner}</g>`;
+        let h = `<div class="orb ${ORBHO ? "ho" : ""}" id="orb" onmouseenter="orbRndAll()"><canvas id="orbc" aria-hidden="true"></canvas><svg viewBox="0 0 400 400" role="group" aria-label="Painel do assistente">`;
+        h += spin(160, -1, `<circle class="dc" cx="200" cy="200" r="195" stroke="#ffd166" opacity=".55" stroke-dasharray="3 9"/>`);
+        h += spin(100, -1, `<circle class="dc" cx="200" cy="200" r="148" stroke="#ffe9b0" opacity=".6" stroke-dasharray="1 10"/>`);
+        ORB.forEach(([id, r, dir, per, cor, nome, tab]) => {
+          const on = tab ? t === tab : AS.g === id,
+            ac = tab ? `asGo('${tab}')` : `asGrp('${id}')`,
+            d = `M ${200 - r},200 a ${r},${r} 0 1,1 ${2 * r},0 a ${r},${r} 0 1,1 ${-2 * r},0`,
+            vis =
+              `<path id="orbp_${id}" d="${d}" fill="none" stroke="none"/>` +
+              `<circle class="tk" cx="200" cy="200" r="${r - 12}" stroke-dasharray="1.4 ${((2 * Math.PI * (r - 12)) / 56 - 1.4).toFixed(2)}"/>` +
+              `<circle class="sh sh2" cx="200" cy="200" r="${r}" stroke-dasharray="${arcs(r)}"/>` +
+              `<circle class="sh sh1" cx="200" cy="200" r="${r}" stroke-dasharray="${arcs(r)}"/>` +
+              `<circle class="arc" cx="200" cy="200" r="${r}" stroke-dasharray="${arcs(r)}"/>` +
+              `<circle class="nd" cx="${200 + r}" cy="200" r="5.5"/>` +
+              ["b1", "b2", "b3"]
+                .map((c) => `<text class="${c}" aria-hidden="true" text-anchor="middle" dy="3.5"><textPath href="#orbp_${id}" startOffset="25%">${nome}</textPath></text>`)
+                .join("");
+          h += `<g class="rg ${on ? "on" : ""}" data-g="${id}" data-k="${tab ? "t" : "g"}" style="--rc:${cor}" role="button" tabindex="0" aria-label="${tab ? "Abrir " + nome : "Abrir opções de " + nome}" onmouseenter="orbRnd(this)" onclick="${ac}" onkeydown="orbKey(event,()=>${ac})">`;
+          h += `<circle cx="200" cy="200" r="${r}" fill="none" stroke="transparent" stroke-width="20" pointer-events="stroke"/>`;
+          h += spin(per, dir, vis);
+          h += `</g>`;
+        });
+        h += spin(55, 1, `<circle class="sh sh2" cx="200" cy="200" r="64" style="--rc:#ff8a1f" stroke-dasharray="${arcs(64)}"/><circle class="sh sh1" cx="200" cy="200" r="64" style="--rc:#ff8a1f" stroke-dasharray="${arcs(64)}"/><circle class="arc" cx="200" cy="200" r="64" style="--rc:#ff8a1f;opacity:.95;stroke-width:3" stroke-dasharray="${arcs(64)}"/><circle class="nd" cx="264" cy="200" r="3.5" style="--rc:#ff8a1f"/>`);
+        h += `<circle class="pl" cx="200" cy="200" r="58" fill="#ffb627" opacity=".2" pointer-events="none"/>`;
+        h += `<g class="core" role="button" tabindex="0" aria-label="Abrir o diagnóstico" onclick="asGo('diag')" onkeydown="orbKey(event,()=>asGo('diag'))">`;
+        h += `<circle class="cb" cx="200" cy="200" r="50"/>`;
+        h += `<text class="t1" x="200" y="184">ASSISTENTE</text>`;
+        h += na
+          ? `<text class="t2" x="200" y="214" fill="#ffb627" style="color:#ffb627">${na}</text><text class="t3" x="200" y="232">${na === 1 ? "ALERTA" : "ALERTAS"}</text>`
+          : `<text class="t2" x="200" y="212" fill="var(--up)" style="font-size:20px;color:var(--up)">Em ordem</text><text class="t3" x="200" y="230">SEM ALERTAS</text>`;
+        h += `</g></svg></div>`;
+        return h;
+      }
       function vAssist() {
         const t = AS.tab || "diag",
-          g = GR.find((x) => x[2].some((y) => y[0] === t)) || GR[0];
+          g = AS.g ? GR.find((x) => x[0] === AS.g) || null : null,
+          na = insights().filter((x) => x.lv === "alerta").length;
         return (
-          `<div class="top" style="margin-bottom:10px;align-items:center"><div class="chips" style="margin:0">${GR.map((x) => `<button class="chip ${x === g ? "on" : ""}" onclick="AS.tab='${x[2][0][0]}';render()">${x[1]}</button>`).join("")}</div></div><div class="chips">${g[2].map((x) => `<button class="chip ${t === x[0] ? "on" : ""}" style="${t === x[0] ? "" : "border-style:dashed"}" onclick="AS.tab='${x[0]}';render()">${x[1]}</button>`).join("")}</div>` +
+          `<div class="hx">` +
+          orbHtml(na) +
+          `<div id="asBox">${boxHtml(g, t)}</div>` +
           (t === "caixa"
             ? tCaixa()
             : t === "agenda"
@@ -2237,7 +3169,10 @@
                           ? tReserva()
                           : t === "mercado"
                             ? tMercado()
-                            : tDiag())
+                            : t === "fiado"
+                              ? tFiado()
+                              : tDiag()) +
+          `</div>`
         );
       }
       /* ---------- Ajustes e perfil (metas) ---------- */
@@ -4227,6 +5162,7 @@
         }
       }
       function remote(d, login) {
+        fiadoCapt(d);
         d = ens(own(d));
         DERIV.forEach((k) => {
           if (S.settings && S.settings[k] !== undefined) d.settings[k] = S.settings[k];
@@ -4373,6 +5309,20 @@
             .catch(() => {}),
         );
       }
+      fiadoLer();
+      addEventListener("storage", (e) => {
+        if (e.key === "caderneta_pessoas_v2" || e.key === "caderneta_updatedAt_v2") {
+          if (fiadoLer()) {
+            fiadoAtual();
+          }
+        }
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && fiadoLer()) fiadoAtual();
+      });
+      setInterval(() => {
+        if (fiadoLer()) fiadoAtual();
+      }, 30000);
       if (viraAno()) save();
       render();
       clock();
