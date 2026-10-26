@@ -144,7 +144,7 @@ dialog h3{font:600 20px Georgia,serif;margin:0 0 14px}
 <div id="ctM" class="note" style="color:var(--dn);margin:0 0 8px"></div>
 <div class="ac"><button onclick="auth('sair')">Sair</button><button onclick="auth('cad')">Criar conta</button><button class="p" onclick="auth('in')">Entrar</button></div></dialog>
 
-<script type="module" src="cloud-sync.js?v=6"></script>
+<script type="module" src="cloud-sync.js?v=7"></script>
 <script>
 const KEY='carteira_v1',$=i=>document.getElementById(i);
 const R=v=>(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -645,9 +645,9 @@ async function atualizar(){const b=$('bt');if(b){b.disabled=true;b.style.opacity
 async function auth(a){const e=$('ctE').value.trim(),p=$('ctP').value,m=$('ctM');m.textContent='';
  if(!window.CloudSync){m.textContent='Sincronização ainda carregando. Tente novamente.';return}
  try{if(a==='sair'){await CloudSync.logout();$('dCt').close();return}if(a==='in')await CloudSync.login(e,p);else await CloudSync.cadastrar(e,p);$('dCt').close()}catch(x){m.textContent='Não foi possível concluir. Verifique e-mail e senha.'}}
-let sk=0,pend=false,st='local',lastSync=0,pt,nuvemOk=false,pushing=false,pushAgain=false,falhas=0;
+let erroSync=null,sk=0,pend=false,st='local',lastSync=0,pt,nuvemOk=false,pushing=false,pushAgain=false,falhas=0;
 const clk=()=>Math.max(Date.now()+sk,(S.updatedAt||0)+1);
-function stUI(){const b=$('cta');if(!b)return;const t={ok:'Sincronizado'+(lastSync?' às '+new Date(lastSync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''),pend:'Sincronização pendente',off:'Sem conexão: alterações guardadas neste aparelho',err:'Falha ao sincronizar, nova tentativa em instantes',local:'Dados salvos apenas neste aparelho'};b.title=t[st];b.classList.toggle('on',st==='ok');b.classList.toggle('wr',st==='pend'||st==='off'||st==='err')}
+function stUI(){const b=$('cta');if(!b)return;const t={ok:'Sincronizado'+(lastSync?' às '+new Date(lastSync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''),pend:'Sincronização pendente',off:'Sem conexão: alterações guardadas neste aparelho',err:'Falha ao sincronizar, nova tentativa em instantes'+(erroSync?' ['+((erroSync.code||erroSync.message||'erro')+'').slice(0,80)+']':''),local:'Dados salvos apenas neste aparelho'};b.title=t[st];b.classList.toggle('on',st==='ok');b.classList.toggle('wr',st==='pend'||st==='off'||st==='err')}
 function setSt(x){st=x;stUI()}
 function push(){clearTimeout(pt);pt=setTimeout(doPush,400)}
 // Só envia depois de ter confirmado o que existe na nuvem (nuvemOk): assim uma leitura que
@@ -659,7 +659,7 @@ async function doPush(){if(!UID||!window.CloudSync||!pend)return;if(!navigator.o
  if(pushing){pushAgain=true;return}pushing=true;
  const v=S.updatedAt;
  try{await CloudSync.salvarNaNuvem(UID,own(S));if(S.updatedAt===v)pend=false;lastSync=Date.now();falhas=0;setSt(pend?'pend':'ok')}
- catch(e){falhas++;setSt('err');clearTimeout(pt);pt=setTimeout(doPush,Math.min(60000,5000*2**Math.min(falhas-1,4)))}
+ catch(e){erroSync=e;console.error('sync envio',e);falhas++;setSt('err');clearTimeout(pt);pt=setTimeout(doPush,Math.min(60000,5000*2**Math.min(falhas-1,4)))}
  finally{pushing=false;if(pushAgain){pushAgain=false;push()}}}
 function remote(d,login){d=ens(own(d));const r=d.updatedAt||0,l=S.updatedAt||0;
  if(r>l||(login&&r===l&&!r)){if(JSON.stringify(d)!==JSON.stringify(S))localStorage.setItem('carteira_bak',JSON.stringify(S));S=d;pend=false;localStorage.setItem(KEY,JSON.stringify(S));lastSync=Date.now();setSt('ok');render();agendaGastos()}
@@ -668,12 +668,12 @@ function remote(d,login){d=ens(own(d));const r=d.updatedAt||0,l=S.updatedAt||0;
 async function pull(){if(!UID||!window.CloudSync||!navigator.onLine)return;const uid=UID;
  try{const n=await CloudSync.buscarDaNuvem(uid);if(uid!==UID)return;const primeira=!nuvemOk;nuvemOk=true;
   if(n)remote(n,primeira);else if(primeira){pend=true;doPush()}}
- catch(e){if(uid===UID)setSt(navigator.onLine?'err':'off')}}
+ catch(e){erroSync=e;console.error('sync leitura',e);if(uid===UID)setSt(navigator.onLine?'err':'off')}}
 async function clock(){try{const a=Date.now(),r=await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC',{cache:'no-store'}),j=await r.json(),b=Date.now();sk=j.unixtime*1000+(b-a)/2-b}catch(e){}}
 window.addEventListener('cloudsync-pronto',()=>{CloudSync.onAuthStateChanged(async u=>{if(CloudSync.pararDeOuvir)CloudSync.pararDeOuvir();
  if(u){UID=u.uid;nuvemOk=false;$('ctS').textContent='Conectado como '+u.email;setSt('pend');
   // Se a leitura falhar, NÃO sobe os dados do aparelho: tenta de novo (ao voltar a rede, a cada minuto, ao reabrir o app).
-  try{const n=await CloudSync.buscarDaNuvem(u.uid);nuvemOk=true;if(n)remote(n,true);else{pend=true;await doPush()}}catch(e){setSt(navigator.onLine?'err':'off')}
+  try{const n=await CloudSync.buscarDaNuvem(u.uid);nuvemOk=true;if(n)remote(n,true);else{pend=true;await doPush()}}catch(e){erroSync=e;console.error('sync entrada',e);setSt(navigator.onLine?'err':'off')}
   render();atualizarGastos(true);
   CloudSync.ouvirMudancas(u.uid,d=>{nuvemOk=true;remote(d)});
   // Acompanha o app de contas ao vivo: quando ele salvar, o Dashboards atualiza sozinho.
