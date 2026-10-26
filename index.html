@@ -144,7 +144,7 @@ dialog h3{font:600 20px Georgia,serif;margin:0 0 14px}
 <div id="ctM" class="note" style="color:var(--dn);margin:0 0 8px"></div>
 <div class="ac"><button onclick="auth('sair')">Sair</button><button onclick="auth('cad')">Criar conta</button><button class="p" onclick="auth('in')">Entrar</button></div></dialog>
 
-<script type="module" src="cloud-sync.js?v=7"></script>
+<script type="module" src="cloud-sync.js?v=8"></script>
 <script>
 const KEY='carteira_v1',$=i=>document.getElementById(i);
 const R=v=>(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -550,6 +550,8 @@ function saveEdit(cid,id){const c=cat(cid),d=S.data[cid],rf=isRF(c),g=i=>parseFl
  if($('eN')){const o=isM(c)?d.positions.find(x=>x.id===id):d.items.find(x=>x.id===id),dp=g('eD');if(dp>=0&&dp<100)o.disp=dp;else delete o.disp;const cd=$('eCs').checked?($('eCn').value==='__o'?$('eN').value.trim():$('eCn').value):'';if(cd)o.cond=cd;else delete o.cond;const lb=$('eL').value;if(lb)o.lib=lb;else delete o.lib}
  $('dDet').close();save()}
 function rv(cid,id){const p=(S.data[cid].positions||S.data[cid].items).find(x=>x.id===id);if(p.reservaTipo==='emergencia')delete p.reservaTipo;else p.reservaTipo='emergencia';save();if($('dDet').open)openDet(cid,id)}
+const DERIV=['gHist','gCart','gAt','gBills','gCards','gDiv','gCampos'];
+function paraNuvem(x){const o=own(x);if(o.settings){o.settings={...o.settings};DERIV.forEach(k=>delete o.settings[k])}return o}
 function own(x){const o={};['categories','data','settings','wealthHistory','updatedAt'].forEach(k=>{if(x&&x[k]!==undefined)o[k]=x[k]});return o}
 let gBusy=null,gStatus=null,gTm;
 function gErro(e){const c=(e&&e.code)||'',m=(e&&e.message)||'';if(/permission/.test(c))return'sem permissão para ler os dados do app de contas (regras do Firestore)';if(/unavailable|offline/.test(c+m)||!navigator.onLine)return'sem conexão com a nuvem';return'falha ao ler a nuvem ('+(c||m||'erro')+')'}
@@ -565,7 +567,7 @@ async function gastosFonte(){let nuvem=null,doCache=false,erro=null,local=null;
  return{st:null,erro}}
 function resumir(st){const cm=hoje().slice(0,7),h={},gk=Object.keys(st.gastos||{}).filter(k=>/^\d{4}-\d{2}$/.test(k)&&st.gastos[k]&&((st.gastos[k].despesas||[]).length||(st.gastos[k].rendas||[]).length)).sort(),l2=(d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))(new Date(new Date().getFullYear(),new Date().getMonth()+2,1)),ks=[...gk.filter(k=>k<=cm).slice(-24),...gk.filter(k=>k>cm&&k<=l2)];
  ks.forEach(k=>{const m=st.gastos[k],c={};let t=0,tp=0;(m.despesas||[]).forEach(d=>{const v=+d.valor||0,n=d.categoria||'Sem categoria';c[n]=(c[n]||0)+v;t+=v;if(d.status!=='pago')tp+=v});h[k]={r:(m.rendas||[]).reduce((a,x)=>a+(+x.valor||0),0),t,tp,c,ri:(m.rendas||[]).map(x=>[x.data||'',+x.valor||0])}});
- if(!ks.some(k=>h[k].t>0))return 0;const s=S.settings,first=!s.gHist;s.gHist=h;s.gCart=(st.cartoes||[]).reduce((a,x)=>a+(+x.saldo||0),0);s.gAt=Date.now();Object.assign(s,lerContas(st));
+ if(!ks.some(k=>h[k].t>0))return 0;const s=S.settings,first=!s.gHist&&s.gExcl===undefined;s.gHist=h;s.gCart=(st.cartoes||[]).reduce((a,x)=>a+(+x.saldo||0),0);s.gAt=Date.now();Object.assign(s,lerContas(st));
  if(first){s.gExcl=[...new Set(Object.values(h).flatMap(x=>Object.keys(x.c)))].filter(n=>/terren|invest|poupan/i.test(n));s.gJan=6;if(!s.custoMensal)s.custoAuto=true}return ks.length}
 function atualizarGastos(silent){if(gBusy)return gBusy;
  gBusy=(async()=>{try{const f=await gastosFonte(),st=f.st;
@@ -658,10 +660,10 @@ async function doPush(){if(!UID||!window.CloudSync||!pend)return;if(!navigator.o
  if(!nuvemOk){pull();return}
  if(pushing){pushAgain=true;return}pushing=true;
  const v=S.updatedAt;
- try{await CloudSync.salvarNaNuvem(UID,own(S));if(S.updatedAt===v)pend=false;lastSync=Date.now();falhas=0;setSt(pend?'pend':'ok')}
+ try{await CloudSync.salvarNaNuvem(UID,paraNuvem(S));if(S.updatedAt===v)pend=false;lastSync=Date.now();falhas=0;setSt(pend?'pend':'ok')}
  catch(e){erroSync=e;console.error('sync envio',e);falhas++;setSt('err');clearTimeout(pt);pt=setTimeout(doPush,Math.min(60000,5000*2**Math.min(falhas-1,4)))}
  finally{pushing=false;if(pushAgain){pushAgain=false;push()}}}
-function remote(d,login){d=ens(own(d));const r=d.updatedAt||0,l=S.updatedAt||0;
+function remote(d,login){d=ens(own(d));DERIV.forEach(k=>{if(S.settings&&S.settings[k]!==undefined)d.settings[k]=S.settings[k]});const r=d.updatedAt||0,l=S.updatedAt||0;
  if(r>l||(login&&r===l&&!r)){if(JSON.stringify(d)!==JSON.stringify(S))localStorage.setItem('carteira_bak',JSON.stringify(S));S=d;pend=false;localStorage.setItem(KEY,JSON.stringify(S));lastSync=Date.now();setSt('ok');render();agendaGastos()}
  else if(r<l){pend=true;doPush()}else{lastSync=Date.now();setSt(pend?'pend':'ok')}}
 // Lê a nuvem. A primeira leitura bem-sucedida libera o envio; se a nuvem não tem nada ainda, envia este aparelho.

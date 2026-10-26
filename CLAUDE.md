@@ -11,6 +11,10 @@
 - Se a leitura do app de contas der "sem permissão", é regra do Firestore: a regra de `gastosmensais_usuarios/{uid}` precisa permitir leitura para o mesmo usuário logado.
 
 ## Publicação
-- Sempre subir o número do cache em `sw.js` (`carteira-vN`, hoje v7) quando mudar o código.
+- Sempre subir o número do cache em `sw.js` (`carteira-vN`, hoje v8) quando mudar o código.
 - Ao pedir mudança, incluir só o que foi pedido: não substituir nem esconder cálculos e informações que já existiam.
 - Visual: tudo com o mesmo alinhamento e blocos simétricos. Em dúvida, mostrar prévia antes de publicar.
+
+## Dados que NÃO vão para a nuvem
+- Tudo que é lido do app de contas (`gHist`, `gCart`, `gAt`, `gBills`, `gCards`, `gDiv`, `gCampos`) é recalculado em cada aparelho e fica fora do envio (`paraNuvem`). Motivo: `gHist.ri` tem lista dentro de lista, que o Firestore recusa (`invalid-argument`) e fazia toda edição falhar ao sincronizar. Nunca gravar arrays aninhados no documento; se precisar, usar lista de objetos.
+- Preferências do usuário (`gExcl`, `gJan`, `custoAuto`...) continuam sincronizando.
