@@ -361,7 +361,8 @@ function lerContas(st){const t0=new Date(),cur=hoje().slice(0,7),n0=new Date(t0.
  const dl=st.outras||st.dividas||st.financiamentos||st.emprestimos||st.debts||[],tx=x=>{const v=pk(x,['taxa','taxaMensal','juros','taxa_mensal']);return v==null?null:+v},
  divs=(Array.isArray(dl)?dl:[]).map(x=>({n:x.nome||x.descricao||x.titulo||'Dívida',saldo:(x.total!=null&&x.pago!=null)?Math.max(0,(+x.total||0)-(+x.pago||0)):(+pk(x,['saldo','saldoDevedor','saldo_devedor','valor','total'])||0),parc:+pk(x,['parcela','valorParcela','valor_parcela'])||0,prazo:+x.prazo||0,taxa:tx(x)})).filter(x=>x.saldo>0);
  return{gBills:bills,gCards:cards,gDiv:divs,gCampos:{pago:trk,venc,cart:cards.length,div:divs.length}}}
-function lidos(){const c=S.settings.gCampos;if(!c)return'';const y=v=>v?'sim':'não';return`<div class="note">Lido do app de contas: marcação de pago ${y(c.pago)} · vencimento ${y(c.venc)} · ${c.div} dívida(s) · ${c.cart} cartão(ões). ${c.pago&&c.venc?'':'Os avisos de contas atrasadas e a vencer dependem de cada despesa ter a marcação de pago e o vencimento no app de contas.'}</div>`}
+function gFonteTxt(){if(!gStatus)return'';const h=new Date(gStatus.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});return gStatus.ok?` Fonte: ${gStatus.origem}, lida às ${h}.`:` A última leitura falhou às ${h}: ${gStatus.erro}. Os valores abaixo são da última leitura que deu certo.`}
+function lidos(){const c=S.settings.gCampos;if(!c)return gStatus&&!gStatus.ok?`<div class="note">Não consegui ler o app de contas: ${gStatus.erro}.</div>`:'';const y=v=>v?'sim':'não';return`<div class="note">Lido do app de contas: marcação de pago ${y(c.pago)} · vencimento ${y(c.venc)} · ${c.div} dívida(s) · ${c.cart} cartão(ões). ${c.pago&&c.venc?'':'Os avisos de contas atrasadas e a vencer dependem de cada despesa ter a marcação de pago e o vencimento no app de contas.'}${gFonteTxt()}</div>`}
 const soma=a=>a.reduce((x,y)=>x+y.v,0);
 const rendLiq=()=>ganho(100,365,OPS[1]);
 function debts(){const s=S.settings,tx=s.dTx||{},arr=[];
@@ -550,14 +551,29 @@ function saveEdit(cid,id){const c=cat(cid),d=S.data[cid],rf=isRF(c),g=i=>parseFl
  $('dDet').close();save()}
 function rv(cid,id){const p=(S.data[cid].positions||S.data[cid].items).find(x=>x.id===id);if(p.reservaTipo==='emergencia')delete p.reservaTipo;else p.reservaTipo='emergencia';save();if($('dDet').open)openDet(cid,id)}
 function own(x){const o={};['categories','data','settings','wealthHistory','updatedAt'].forEach(k=>{if(x&&x[k]!==undefined)o[k]=x[k]});return o}
-async function gastosFonte(){try{if(UID&&window.CloudSync){const d=await CloudSync.buscarDaNuvem(UID);if(d&&d.gestaoFinanceira)return d.gestaoFinanceira}}catch(e){}
- try{const r=localStorage.getItem('gf_state_v2');if(r)return JSON.parse(r)}catch(e){}return null}
+let gBusy=null,gStatus=null,gTm;
+function gErro(e){const c=(e&&e.code)||'',m=(e&&e.message)||'';if(/permission/.test(c))return'sem permissão para ler os dados do app de contas (regras do Firestore)';if(/unavailable|offline/.test(c+m)||!navigator.onLine)return'sem conexão com a nuvem';return'falha ao ler a nuvem ('+(c||m||'erro')+')'}
+function agendaGastos(){clearTimeout(gTm);gTm=setTimeout(()=>atualizarGastos(true),1200)}
+// Lê o app de contas pela nuvem (documento do próprio app) e pela cópia deste aparelho,
+// e usa a mais recente (campo atualizadoEm). Se a nuvem falhar, usa a cópia local.
+async function gastosFonte(){let nuvem=null,doCache=false,erro=null,local=null;
+ if(UID&&window.CloudSync&&CloudSync.buscarGastos){try{const r=await CloudSync.buscarGastos(UID);nuvem=r.dados;doCache=r.doCache}catch(e){erro=e}}
+ try{const r=localStorage.getItem('gf_state_v2');if(r)local=JSON.parse(r)}catch(e){}
+ const em=x=>+(x&&x.atualizadoEm)||0,okN=nuvem&&nuvem.gastos,okL=local&&local.gastos;
+ if(okN&&(!okL||em(nuvem)>=em(local)))return{st:nuvem,origem:doCache?'nuvem (cópia guardada no aparelho)':'nuvem',erro};
+ if(okL)return{st:local,origem:'cópia deste aparelho',erro};
+ return{st:null,erro}}
 function resumir(st){const cm=hoje().slice(0,7),h={},gk=Object.keys(st.gastos||{}).filter(k=>/^\d{4}-\d{2}$/.test(k)&&st.gastos[k]&&((st.gastos[k].despesas||[]).length||(st.gastos[k].rendas||[]).length)).sort(),l2=(d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))(new Date(new Date().getFullYear(),new Date().getMonth()+2,1)),ks=[...gk.filter(k=>k<=cm).slice(-24),...gk.filter(k=>k>cm&&k<=l2)];
  ks.forEach(k=>{const m=st.gastos[k],c={};let t=0,tp=0;(m.despesas||[]).forEach(d=>{const v=+d.valor||0,n=d.categoria||'Sem categoria';c[n]=(c[n]||0)+v;t+=v;if(d.status!=='pago')tp+=v});h[k]={r:(m.rendas||[]).reduce((a,x)=>a+(+x.valor||0),0),t,tp,c,ri:(m.rendas||[]).map(x=>[x.data||'',+x.valor||0])}});
  if(!ks.some(k=>h[k].t>0))return 0;const s=S.settings,first=!s.gHist;s.gHist=h;s.gCart=(st.cartoes||[]).reduce((a,x)=>a+(+x.saldo||0),0);s.gAt=Date.now();Object.assign(s,lerContas(st));
  if(first){s.gExcl=[...new Set(Object.values(h).flatMap(x=>Object.keys(x.c)))].filter(n=>/terren|invest|poupan/i.test(n));s.gJan=6;if(!s.custoMensal)s.custoAuto=true}return ks.length}
-async function atualizarGastos(silent){const st=await gastosFonte();if(!st||!st.gastos){if(!silent)alert('Não encontrei os dados do app de contas. Entre na mesma conta usada nele ou importe o backup dele.');return false}
- if(!resumir(st)){if(!silent)alert('O app de contas ainda não tem meses com despesas lançadas.');return false}save(!!silent);return true}
+function atualizarGastos(silent){if(gBusy)return gBusy;
+ gBusy=(async()=>{try{const f=await gastosFonte(),st=f.st;
+  if(!st||!st.gastos){gStatus={ok:0,em:Date.now(),erro:f.erro?gErro(f.erro):'o app de contas ainda não enviou dados para a nuvem'};
+   if(!silent)alert(f.erro?'Não consegui ler o app de contas: '+gErro(f.erro)+'.':'Não encontrei os dados do app de contas. Abra o app de contas na mesma conta (ele envia os dados para a nuvem ao salvar) ou importe o backup dele.');return false}
+  if(!resumir(st)){gStatus={ok:0,em:Date.now(),erro:'o app de contas ainda não tem meses com despesas lançadas'};if(!silent)alert('O app de contas ainda não tem meses com despesas lançadas.');return false}
+  gStatus={ok:1,em:Date.now(),origem:f.origem};save(!!silent);return true}
+ catch(e){gStatus={ok:0,em:Date.now(),erro:gErro(e)};return false}finally{gBusy=null}})();return gBusy}
 function impG(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);if(d.gestaoFinanceira)d=d.gestaoFinanceira;if(!d.gastos)throw 0;if(!resumir(d))return alert('Nenhum mês com despesas encontrado.');save()}catch(e){alert('Arquivo inválido. Use o backup exportado pelo app de contas.')}};r.readAsText(f)}
 function gStats(){const s=S.settings,h=s.gHist||{},ks=Object.keys(h).filter(k=>h[k].t>0).sort();if(!ks.length)return null;const cur=new Date().toISOString().slice(0,7);let u=ks.filter(k=>k<cur);if(u.length<3)u=ks;u=u.slice(-(s.gJan||6));
  const ex=s.gExcl||[],vi=u.map(k=>Object.entries(h[k].c).reduce((a,e)=>ex.includes(e[0])?a:a+e[1],0)),tt=u.map(k=>h[k].t),rr=u.map(k=>h[k].r),av=a=>a.reduce((x,y)=>x+y,0)/(a.length||1),
@@ -629,23 +645,41 @@ async function atualizar(){const b=$('bt');if(b){b.disabled=true;b.style.opacity
 async function auth(a){const e=$('ctE').value.trim(),p=$('ctP').value,m=$('ctM');m.textContent='';
  if(!window.CloudSync){m.textContent='Sincronização ainda carregando. Tente novamente.';return}
  try{if(a==='sair'){await CloudSync.logout();$('dCt').close();return}if(a==='in')await CloudSync.login(e,p);else await CloudSync.cadastrar(e,p);$('dCt').close()}catch(x){m.textContent='Não foi possível concluir. Verifique e-mail e senha.'}}
-let sk=0,pend=false,st='local',lastSync=0,pt;
+let sk=0,pend=false,st='local',lastSync=0,pt,nuvemOk=false,pushing=false,pushAgain=false,falhas=0;
 const clk=()=>Math.max(Date.now()+sk,(S.updatedAt||0)+1);
 function stUI(){const b=$('cta');if(!b)return;const t={ok:'Sincronizado'+(lastSync?' às '+new Date(lastSync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''),pend:'Sincronização pendente',off:'Sem conexão: alterações guardadas neste aparelho',err:'Falha ao sincronizar, nova tentativa em instantes',local:'Dados salvos apenas neste aparelho'};b.title=t[st];b.classList.toggle('on',st==='ok');b.classList.toggle('wr',st==='pend'||st==='off'||st==='err')}
 function setSt(x){st=x;stUI()}
 function push(){clearTimeout(pt);pt=setTimeout(doPush,400)}
+// Só envia depois de ter confirmado o que existe na nuvem (nuvemOk): assim uma leitura que
+// falhou nunca é confundida com "nuvem vazia" e não sobrescreve a carteira.
+// Um envio por vez; se algo mudar durante o envio, envia de novo em seguida.
+// Em caso de erro, tenta de novo com espera crescente (5s, 10s, 20s... até 60s).
 async function doPush(){if(!UID||!window.CloudSync||!pend)return;if(!navigator.onLine)return setSt('off');
- const v=S.updatedAt;try{const cur=await CloudSync.buscarDaNuvem(UID)||{};await CloudSync.salvarNaNuvem(UID,{...cur,...own(S)});if(S.updatedAt===v)pend=false;lastSync=Date.now();setSt(pend?'pend':'ok')}catch(e){setSt('err')}}
+ if(!nuvemOk){pull();return}
+ if(pushing){pushAgain=true;return}pushing=true;
+ const v=S.updatedAt;
+ try{await CloudSync.salvarNaNuvem(UID,own(S));if(S.updatedAt===v)pend=false;lastSync=Date.now();falhas=0;setSt(pend?'pend':'ok')}
+ catch(e){falhas++;setSt('err');clearTimeout(pt);pt=setTimeout(doPush,Math.min(60000,5000*2**Math.min(falhas-1,4)))}
+ finally{pushing=false;if(pushAgain){pushAgain=false;push()}}}
 function remote(d,login){d=ens(own(d));const r=d.updatedAt||0,l=S.updatedAt||0;
- if(r>l||(login&&r===l&&!r)){if(JSON.stringify(d)!==JSON.stringify(S))localStorage.setItem('carteira_bak',JSON.stringify(S));S=d;pend=false;localStorage.setItem(KEY,JSON.stringify(S));lastSync=Date.now();setSt('ok');render()}
+ if(r>l||(login&&r===l&&!r)){if(JSON.stringify(d)!==JSON.stringify(S))localStorage.setItem('carteira_bak',JSON.stringify(S));S=d;pend=false;localStorage.setItem(KEY,JSON.stringify(S));lastSync=Date.now();setSt('ok');render();agendaGastos()}
  else if(r<l){pend=true;doPush()}else{lastSync=Date.now();setSt(pend?'pend':'ok')}}
-async function pull(){if(!UID||!window.CloudSync||!navigator.onLine)return;try{const n=await CloudSync.buscarDaNuvem(UID);if(n)remote(n)}catch(e){setSt('err')}}
+// Lê a nuvem. A primeira leitura bem-sucedida libera o envio; se a nuvem não tem nada ainda, envia este aparelho.
+async function pull(){if(!UID||!window.CloudSync||!navigator.onLine)return;const uid=UID;
+ try{const n=await CloudSync.buscarDaNuvem(uid);if(uid!==UID)return;const primeira=!nuvemOk;nuvemOk=true;
+  if(n)remote(n,primeira);else if(primeira){pend=true;doPush()}}
+ catch(e){if(uid===UID)setSt(navigator.onLine?'err':'off')}}
 async function clock(){try{const a=Date.now(),r=await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC',{cache:'no-store'}),j=await r.json(),b=Date.now();sk=j.unixtime*1000+(b-a)/2-b}catch(e){}}
 window.addEventListener('cloudsync-pronto',()=>{CloudSync.onAuthStateChanged(async u=>{if(CloudSync.pararDeOuvir)CloudSync.pararDeOuvir();
- if(u){UID=u.uid;$('ctS').textContent='Conectado como '+u.email;setSt('pend');const n=await CloudSync.buscarDaNuvem(u.uid).catch(()=>null);if(n)remote(n,true);else{pend=true;await doPush()}render();atualizarGastos(true);
-  CloudSync.ouvirMudancas(u.uid,d=>remote(d))}
- else{UID=null;pend=false;$('ctS').textContent='Dados salvos apenas neste aparelho.';setSt('local');render()}})});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(viraAno())save();pull();doPush();if(!S.settings.gAt||Date.now()-S.settings.gAt>18e5)atualizarGastos(true)}});
+ if(u){UID=u.uid;nuvemOk=false;$('ctS').textContent='Conectado como '+u.email;setSt('pend');
+  // Se a leitura falhar, NÃO sobe os dados do aparelho: tenta de novo (ao voltar a rede, a cada minuto, ao reabrir o app).
+  try{const n=await CloudSync.buscarDaNuvem(u.uid);nuvemOk=true;if(n)remote(n,true);else{pend=true;await doPush()}}catch(e){setSt(navigator.onLine?'err':'off')}
+  render();atualizarGastos(true);
+  CloudSync.ouvirMudancas(u.uid,d=>{nuvemOk=true;remote(d)});
+  // Acompanha o app de contas ao vivo: quando ele salvar, o Dashboards atualiza sozinho.
+  if(CloudSync.ouvirGastos)CloudSync.ouvirGastos(u.uid,()=>agendaGastos(),e=>{gStatus={ok:0,em:Date.now(),erro:gErro(e)}})}
+ else{UID=null;nuvemOk=false;pend=false;$('ctS').textContent='Dados salvos apenas neste aparelho.';setSt('local');render()}})});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(viraAno())save();pull();doPush();if(!S.settings.gAt||Date.now()-S.settings.gAt>12e4)atualizarGastos(true)}});
 addEventListener('online',()=>{pull();doPush()});addEventListener('offline',()=>setSt('off'));
 addEventListener('pagehide',()=>{if(pend)doPush()});
 setInterval(()=>{if(pend)doPush();else pull()},60000);setInterval(()=>{if(viraAno())save()},20000);
