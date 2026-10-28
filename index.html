@@ -384,6 +384,39 @@
       .pgd i.on {
         background: var(--gold);
       }
+      @media (max-width: 760px) {
+        header {
+          transition: padding 0.2s;
+        }
+        body.sm header {
+          padding-top: 8px;
+        }
+        body.sm .top {
+          flex-wrap: nowrap;
+          align-items: center;
+        }
+        body.sm .top .lb {
+          display: none;
+        }
+        body.sm .tot {
+          font-size: 22px;
+          margin-top: 0;
+        }
+        body.sm .acts {
+          flex-wrap: nowrap;
+        }
+        body.sm .acts .icn {
+          font-size: 0;
+          gap: 0;
+          padding: 8px 10px;
+        }
+        body.sm nav {
+          margin-top: 6px;
+        }
+        body.sm nav.mob button {
+          padding: 8px 0;
+        }
+      }
       nav.mob {
         gap: 0;
         overflow-x: hidden;
@@ -1873,6 +1906,7 @@
           ...S.categories.map((c) => [c.id, c.label, tabIc(c)]),
         ];
         if (!tabs.some((t) => t[0] === TAB)) TAB = "resumo";
+        MTABS = tabs.map((t) => t[0]);
         $("tabs").classList.toggle("mob", mob);
         $("tabs").innerHTML = tabs
           .map((t) =>
@@ -1930,13 +1964,76 @@
         fitMob();
         fitDonut();
       });
-      let RPG = 0;
+      let RPG = 0,
+        MTABS = [];
+      const mainEl = document.querySelector("main");
+      // Celular: arrastar pro lado troca de guia quando não há mais página para virar.
+      let TS = null;
+      const hScroll = (el) => {
+        for (; el && el !== mainEl; el = el.parentElement) {
+          const ox = getComputedStyle(el).overflowX;
+          if (
+            (ox === "auto" || ox === "scroll") &&
+            el.scrollWidth > el.clientWidth + 1 &&
+            !el.classList.contains("pgs")
+          )
+            return true;
+        }
+        return false;
+      };
+      mainEl.addEventListener(
+        "touchstart",
+        (e) => {
+          if (!MOB() || e.touches.length !== 1) return (TS = null);
+          const t = e.touches[0];
+          TS = { x: t.clientX, y: t.clientY, pg: RPG, inPgs: !!e.target.closest(".pgs") };
+        },
+        { passive: true },
+      );
+      mainEl.addEventListener(
+        "touchend",
+        (e) => {
+          if (!TS) return;
+          const s = TS,
+            t = e.changedTouches[0],
+            dx = t.clientX - s.x,
+            dy = t.clientY - s.y;
+          TS = null;
+          if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+          if (hScroll(e.target)) return;
+          const dir = dx < 0 ? 1 : -1,
+            i = MTABS.indexOf(TAB);
+          if (i < 0) return;
+          if (s.inPgs) {
+            if (RPG !== s.pg) return;
+            if (dir > 0 && s.pg < 1) return;
+            if (dir < 0 && s.pg > 0) return;
+          }
+          const n = MTABS[i + dir];
+          if (n) go(n, dir < 0 && n === "resumo" ? 1 : 0);
+        },
+        { passive: true },
+      );
+      // Celular: cabeçalho reduzido ao rolar para baixo.
+      mainEl.addEventListener(
+        "scroll",
+        () => {
+          if (!MOB()) return document.body.classList.remove("sm");
+          const y = mainEl.scrollTop,
+            sm = document.body.classList.contains("sm");
+          if (!sm && y > 40 && mainEl.scrollHeight - mainEl.clientHeight > 200)
+            document.body.classList.add("sm");
+          else if (sm && y < 4) document.body.classList.remove("sm");
+        },
+        { passive: true },
+      );
       function pgS(el) {
         RPG = Math.round(el.scrollLeft / (el.clientWidth || 1));
         document.querySelectorAll(".pgd i").forEach((d, k) => d.classList.toggle("on", k === RPG));
       }
-      function go(t) {
+      function go(t, pg) {
         TAB = t;
+        RPG = pg || 0;
         render();
         $("v").parentNode.scrollTop = 0;
       }
