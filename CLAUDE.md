@@ -11,7 +11,7 @@
 - Se a leitura do app de contas der "sem permissão", é regra do Firestore: a regra de `gastosmensais_usuarios/{uid}` precisa permitir leitura para o mesmo usuário logado.
 
 ## Publicação
-- Sempre subir o número do cache em `sw.js` (`carteira-vN`, hoje v13) quando mudar o código.
+- Sempre subir o número do cache em `sw.js` (`carteira-vN`, hoje v14) quando mudar o código.
 - Ao pedir mudança, incluir só o que foi pedido: não substituir nem esconder cálculos e informações que já existiam.
 - Visual: tudo com o mesmo alinhamento e blocos simétricos. Em dúvida, mostrar prévia antes de publicar.
 
