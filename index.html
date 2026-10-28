@@ -333,6 +333,20 @@
         main .kpi {
           padding: 14px;
         }
+        main .three > div {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+        main .dcv {
+          white-space: nowrap;
+        }
+        main .kv,
+        main .sr {
+          display: block;
+          white-space: nowrap;
+          overflow-wrap: normal;
+        }
       }
       .pgs {
         display: flex;
@@ -1875,9 +1889,47 @@
           pgs.scrollLeft = RPG * pgs.clientWidth;
           pgS(pgs);
         }
+        fitMob();
+        fitDonut();
         stUI();
       }
       MQ.addEventListener("change", () => S && render());
+      // Celular: valores em dinheiro nunca saem da borda — a fonte encolhe até caber,
+      // e todos os valores do mesmo bloco ficam com o mesmo tamanho.
+      function fitMob() {
+        document.querySelectorAll("main .kp, main .three").forEach((g) => {
+          const els = [...g.querySelectorAll(".kv,.sr")];
+          els.forEach((e) => (e.style.fontSize = ""));
+          if (!MOB()) return;
+          let min = Infinity;
+          els.forEach((e) => {
+            let f = parseFloat(getComputedStyle(e).fontSize);
+            e.style.fontSize = f + "px";
+            while (e.scrollWidth > e.clientWidth + 1 && f > 11) {
+              f -= 0.5;
+              e.style.fontSize = f + "px";
+            }
+            min = Math.min(min, f);
+          });
+          els.forEach((e) => (e.style.fontSize = min + "px"));
+        });
+      }
+      function fitDonut() {
+        document.querySelectorAll("main .dcv").forEach((e) => {
+          e.style.fontSize = "";
+          if (!MOB()) return;
+          const max = e.parentElement.clientWidth - 68;
+          let f = parseFloat(getComputedStyle(e).fontSize);
+          while (e.getBoundingClientRect().width > max && f > 11) {
+            f -= 0.5;
+            e.style.fontSize = f + "px";
+          }
+        });
+      }
+      window.addEventListener("resize", () => {
+        fitMob();
+        fitDonut();
+      });
       let RPG = 0;
       function pgS(el) {
         RPG = Math.round(el.scrollLeft / (el.clientWidth || 1));
