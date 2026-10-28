@@ -325,6 +325,67 @@
         border-color: var(--gold);
         font-weight: 600;
       }
+      @media (max-width: 760px) {
+        main .kp {
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        main .kpi {
+          padding: 14px;
+        }
+      }
+      .pgs {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+      }
+      .pgs::-webkit-scrollbar {
+        display: none;
+      }
+      .pgs > section {
+        flex: 0 0 100%;
+        min-width: 0;
+        scroll-snap-align: start;
+        display: grid;
+        gap: 14px;
+      }
+      .pgs > section > .kp {
+        margin-bottom: 0;
+      }
+      .pgd {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .pgd i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--line);
+      }
+      .pgd i.on {
+        background: var(--gold);
+      }
+      nav.mob {
+        gap: 0;
+        overflow-x: hidden;
+      }
+      nav.mob button {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 0;
+      }
+      nav.mob button svg.i {
+        width: 22px;
+        height: 22px;
+      }
       main {
         flex: 1;
         min-height: 0;
@@ -1496,8 +1557,23 @@
         refresh: '<path d="M20 11a8 8 0 0 0-14-4M4 4v4h4M4 13a8 8 0 0 0 14 4M20 20v-4h-4"/>',
         left: '<path d="M15 6l-6 6 6 6"/>',
         right: '<path d="M9 6l6 6-6 6"/>',
+        home: '<path d="M4 11l8-7 8 7M6 10v10h12V10M10 20v-6h4v6"/>',
+        trend: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',
+        building: '<path d="M5 21V4h9v17M14 9h5v12M3 21h18M8 8h3M8 12h3M8 16h3"/>',
+        shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+        coin: '<circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.5-1-1.500-1.500-2.500-1.500-1.500 0-2.500.8-2.500 2s1 1.700 2.500 2 2.500.8 2.500 2-1 2-2.500 2c-1 0-2-.5-2.500-1.500M12 6.500V8M12 16v1.500"/>',
+        bank: '<path d="M3 10l9-6 9 6M5 10v8M9.500 10v8M14.500 10v8M19 10v8M3 20h18"/>',
+        wallet: '<path d="M4 7h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4zM4 7V6a2 2 0 0 1 2-2h10v3M16 14h2"/>',
+        briefcase: '<path d="M4 8h16v11H4zM9 8V5h6v3M4 13h16"/>',
       };
       const ic = (n) => `<svg class="i" viewBox="0 0 24 24">${IC[n]}</svg>`;
+      // Celular: visual simplificado (sem Assistente, guias só com ícone). No PC nada muda.
+      const MQ = window.matchMedia("(max-width: 760px)");
+      const MOB = () => MQ.matches;
+      const tabIc = (c) =>
+        ({ acoes: "trend", fiis: "building", previdencia: "shield", crypto: "coin", fgts: "briefcase" })[
+          c.id
+        ] || (isRF(c) ? "bank" : isM(c) ? "trend" : "wallet");
       document.querySelectorAll("[data-i]").forEach((b) => (b.innerHTML = ic(b.dataset.i)));
       let S,
         TAB = "resumo",
@@ -1776,22 +1852,36 @@
       function render() {
         $("tot").innerHTML = money(grand());
         const NA = insights().filter((x) => x.lv === "alerta").length;
+        const mob = MOB();
         const tabs = [
-          ["resumo", "Resumo"],
-          ["assist", "Assistente"],
-          ...S.categories.map((c) => [c.id, c.label]),
+          ["resumo", "Resumo", "home"],
+          ...(mob ? [] : [["assist", "Assistente"]]),
+          ...S.categories.map((c) => [c.id, c.label, tabIc(c)]),
         ];
         if (!tabs.some((t) => t[0] === TAB)) TAB = "resumo";
+        $("tabs").classList.toggle("mob", mob);
         $("tabs").innerHTML = tabs
-          .map(
-            (t) =>
-              `<button class="${t[0] === TAB ? "on" : ""}" onclick="go('${t[0]}')">${esc(t[1])}${t[0] === "assist" && NA ? `<span class="bdg">${NA}</span>` : ""}</button>`,
+          .map((t) =>
+            mob
+              ? `<button class="${t[0] === TAB ? "on" : ""}" onclick="go('${t[0]}')" title="${esc(t[1])}" aria-label="${esc(t[1])}">${ic(t[2])}</button>`
+              : `<button class="${t[0] === TAB ? "on" : ""}" onclick="go('${t[0]}')">${esc(t[1])}${t[0] === "assist" && NA ? `<span class="bdg">${NA}</span>` : ""}</button>`,
           )
           .join("");
         $("v").innerHTML =
           TAB === "resumo" ? vResumo() : TAB === "assist" ? vAssist() : vGuia(cat(TAB));
         if (TAB === "assist") holoStart();
+        const pgs = $("v").querySelector(".pgs");
+        if (pgs) {
+          pgs.scrollLeft = RPG * pgs.clientWidth;
+          pgS(pgs);
+        }
         stUI();
+      }
+      MQ.addEventListener("change", () => S && render());
+      let RPG = 0;
+      function pgS(el) {
+        RPG = Math.round(el.scrollLeft / (el.clientWidth || 1));
+        document.querySelectorAll(".pgd i").forEach((d, k) => d.classList.toggle("on", k === RPG));
       }
       function go(t) {
         TAB = t;
@@ -1896,8 +1986,8 @@
         const kp = `<div class="kp">${kpi("Resultado das posições", `<span class="m ${pp >= 0 ? "up" : "dnc"}">${pp >= 0 ? "+" : ""}${R(pp)}</span>`, pi ? P((pp / pi) * 100) + " sobre o investido" : "Sem posições", "AS.tab='diag';go('assist')")}
  ${kpi("Meta do ano", `<span class="m">${P(s.metaAnual ? (a.t / s.metaAnual) * 100 : 0)}</span>`, a.t >= s.metaAnual ? "Meta atingida" : "Faltam " + R(s.metaAnual - a.t), "openMetas()", bar(a.t, s.metaAnual))}
  ${kpi("Reserva de emergência", `<span class="m">${R(rs.at)}</span>`, cm > 0 ? N(rs.at / cm, 1) + " meses de despesas" : rs.meta ? "Meta de " + R(rs.meta) : "Defina a meta", "openMetas()", bar(rs.at, rs.meta))}
- ${kpi("Diagnóstico", na ? na + (na > 1 ? " alertas" : " alerta") : "Em ordem", ins.length + " análise(s) da carteira", "AS.tab='diag';go('assist')")}
- ${kpi("Disponível de imediato", `<span class="m">${R(dp)}</span>`, trav() > 0 ? R(trav()) + " com condição de resgate, fora deste valor" : "Nenhum ativo com condição de resgate", "AS.tab='caixa';go('assist')")}</div>`;
+ ${MOB() ? "" : kpi("Diagnóstico", na ? na + (na > 1 ? " alertas" : " alerta") : "Em ordem", ins.length + " análise(s) da carteira", "AS.tab='diag';go('assist')")}
+ ${kpi("Disponível de imediato", `<span class="m">${R(dp)}</span>`, trav() > 0 ? R(trav()) + " com condição de resgate, fora deste valor" : "Nenhum ativo com condição de resgate", MOB() ? "" : "AS.tab='caixa';go('assist')")}</div>`;
         const left = g
           ? `<div class="chips" style="margin:0 0 16px"><button class="chip ${gr ? "on" : ""}" onclick="F.by='guia';render()">Por guia</button><button class="chip ${gr ? "" : "on"}" onclick="F.by='inst';render()">Por instituição</button></div>
  <div class="sum">${donut(sg, bt, DC.l, DC.v)}<div class="lg">${sg.map((x, i) => `<button class="lgr ${sel === x.id ? "sel" : ""}" onclick="fl(${i})" onmouseenter="hv(${i})" onmouseleave="hv(-1)"><i class="dot" style="background:${x.c}"></i><span class="n">${esc(x.n)}</span><span class="num m">${R(x.v)}</span><span class="mut num" style="width:48px;text-align:right">${P((x.v / bt) * 100)}</span></button>`).join("")}${fg > 0 ? `<button class="lgr mut" onclick="go('fgts')"><i class="dot" style="border:1px solid var(--mut)"></i><span class="n">FGTS (fora do total)</span><span class="num m">${R(fg)}</span><span style="width:48px"></span></button>` : ""}</div></div>
@@ -1917,12 +2007,15 @@
      : ""
  }`
           : `<div class="emp">Nenhum valor registrado ainda.<br><br><button class="p" onclick="openLan()">Fazer o primeiro lançamento</button></div>`;
+        const gridL = `<div class="card"><h4>Onde está o seu dinheiro</h4>${left}</div>`;
+        const gridR = `<div style="display:grid;gap:14px;align-content:start"><div class="card"><h4>Atenção</h4>${(ins.some((x) => x.lv === "alerta") ? ins.filter((x) => x.lv === "alerta").slice(0, 3) : [{ lv: "ok", t: "Nada urgente no momento" }]).map((x) => `<div class="ins ${x.lv} ${x.crit ? "crit" : ""}" style="cursor:pointer;padding:10px 4px" onclick="${MOB() ? "" : "AS.tab='diag';go('assist')"}"><i class="dot"></i><div class="n"><b>${esc(x.t)}</b></div></div>`).join("")}</div>
+ <div class="card"><h4>Taxas de mercado</h4><div class="three"><div><div class="lb">CDI</div><b class="sr">${N(tx.cdi)}%</b></div><div><div class="lb">Selic meta</div><b class="sr">${tx.selic ? N(tx.selic) + "%" : "-"}</b></div><div><div class="lb">Dólar</div><b class="sr">${tx.usd ? "R$ " + N(tx.usd) : "-"}</b></div></div>
+ <div class="note" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${tx.em ? "Banco Central, " + tx.em : "Sem atualização"}${tx.ipca ? " · IPCA 12m " + N(tx.ipca) + "%" : ""}</span><button class="ib" id="bt" onclick="atualizar()" title="Atualizar taxas e cotações" aria-label="Atualizar taxas e cotações">${ic("refresh")}</button></div></div></div>`;
+        if (MOB())
+          return `<div class="pgs" onscroll="pgS(this)"><section>${kp}${gridL}</section><section>${gridR}${chartW()}</section></div><div class="pgd"><i class="on"></i><i></i></div>`;
         return (
           kp +
-          `<div class="grid"><div class="card"><h4>Onde está o seu dinheiro</h4>${left}</div>
- <div style="display:grid;gap:14px;align-content:start"><div class="card"><h4>Atenção</h4>${(ins.some((x) => x.lv === "alerta") ? ins.filter((x) => x.lv === "alerta").slice(0, 3) : [{ lv: "ok", t: "Nada urgente no momento" }]).map((x) => `<div class="ins ${x.lv} ${x.crit ? "crit" : ""}" style="cursor:pointer;padding:10px 4px" onclick="AS.tab='diag';go('assist')"><i class="dot"></i><div class="n"><b>${esc(x.t)}</b></div></div>`).join("")}</div>
- <div class="card"><h4>Taxas de mercado</h4><div class="three"><div><div class="lb">CDI</div><b class="sr">${N(tx.cdi)}%</b></div><div><div class="lb">Selic meta</div><b class="sr">${tx.selic ? N(tx.selic) + "%" : "-"}</b></div><div><div class="lb">Dólar</div><b class="sr">${tx.usd ? "R$ " + N(tx.usd) : "-"}</b></div></div>
- <div class="note" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${tx.em ? "Banco Central, " + tx.em : "Sem atualização"}${tx.ipca ? " · IPCA 12m " + N(tx.ipca) + "%" : ""}</span><button class="ib" id="bt" onclick="atualizar()" title="Atualizar taxas e cotações" aria-label="Atualizar taxas e cotações">${ic("refresh")}</button></div></div></div></div>` +
+          `<div class="grid">${gridL}${gridR}</div>` +
           chartW()
         );
       }
