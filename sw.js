@@ -1,6 +1,6 @@
 // Suba o número da versão sempre que fizer deploy de mudanças —
 // isso força o navegador a descartar o cache antigo.
-const CACHE = "carteira-v14";
+const CACHE = "carteira-v15";
 
 const ASSETS = [
   "./", "./index.html", "./manifest.json",
