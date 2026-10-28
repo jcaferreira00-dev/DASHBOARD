@@ -1923,7 +1923,7 @@
         $("tabs").innerHTML = tabs
           .map((t) =>
             mob
-              ? `<button class="${t[0] === TAB ? "on" : ""}" onclick="go('${t[0]}')" title="${esc(t[1])}" aria-label="${esc(t[1])}">${ic(t[2])}</button>`
+              ? `<button class="${t[0] === TAB ? "on" : ""}" onclick="goS('${t[0]}')" title="${esc(t[1])}" aria-label="${esc(t[1])}">${ic(t[2])}</button>`
               : `<button class="${t[0] === TAB ? "on" : ""}" onclick="go('${t[0]}')">${esc(t[1])}${t[0] === "assist" && NA ? `<span class="bdg">${NA}</span>` : ""}</button>`,
           )
           .join("");
@@ -2024,7 +2024,7 @@
             if (dir < 0 && s.pg > 0) return;
           }
           const n = MTABS[i + dir];
-          if (n) go(n, dir < 0 && n === "resumo" ? 1 : 0);
+          if (n) goS(n, dir < 0 && n === "resumo" ? 1 : 0);
         },
         { passive: true },
       );
@@ -2080,6 +2080,46 @@
       function pgS(el) {
         RPG = Math.round(el.scrollLeft / (el.clientWidth || 1));
         document.querySelectorAll(".pgd i").forEach((d, k) => d.classList.toggle("on", k === RPG));
+      }
+      // Celular: troca de guia com deslize suave (sai para um lado, entra do outro).
+      let SLIDING = false;
+      async function goS(n, pg) {
+        const i = MTABS.indexOf(TAB),
+          j = MTABS.indexOf(n),
+          v = $("v");
+        if (
+          SLIDING ||
+          !MOB() ||
+          n === TAB ||
+          i < 0 ||
+          j < 0 ||
+          !v.animate ||
+          matchMedia("(prefers-reduced-motion: reduce)").matches
+        )
+          return go(n, pg);
+        SLIDING = true;
+        const d = j > i ? 1 : -1;
+        try {
+          await v.animate(
+            [
+              { transform: "translateX(0)", opacity: 1 },
+              { transform: `translateX(${-d * 48}px)`, opacity: 0 },
+            ],
+            { duration: 140, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" },
+          ).finished;
+          go(n, pg);
+          await v.animate(
+            [
+              { transform: `translateX(${d * 48}px)`, opacity: 0 },
+              { transform: "translateX(0)", opacity: 1 },
+            ],
+            { duration: 240, easing: "cubic-bezier(0,0,.2,1)" },
+          ).finished;
+        } catch (e) {
+          go(n, pg);
+        }
+        v.getAnimations().forEach((a) => a.cancel());
+        SLIDING = false;
       }
       function go(t, pg) {
         TAB = t;
