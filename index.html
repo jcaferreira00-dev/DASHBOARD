@@ -384,37 +384,49 @@
       .pgd i.on {
         background: var(--gold);
       }
+      /* Celular: o cabeçalho encolhe junto com a rolagem (--p vai de 0 a 1), sem saltos. */
+      :root {
+        --p: 0;
+      }
       @media (max-width: 760px) {
         header {
-          transition: padding 0.2s;
+          padding-top: calc(18px - 10px * var(--p));
         }
-        body.sm header {
-          padding-top: 8px;
+        header .top {
+          margin-bottom: calc(var(--hd0, 0) * -1px * var(--p));
         }
-        body.sm .top {
-          flex-wrap: nowrap;
-          align-items: center;
+        header .top .lb {
+          opacity: calc(1 - var(--p) * 1.8);
         }
-        body.sm .top .lb {
-          display: none;
+        header .top .tot {
+          transform-origin: 0 0;
+          transform: translateY(calc(var(--dyt, 0) * 1px * var(--p)))
+            scale(calc(1 + (var(--s, 1) - 1) * var(--p)));
         }
-        body.sm .tot {
-          font-size: 22px;
-          margin-top: 0;
+        header .acts {
+          transform: translate(calc(var(--dx, 0) * 1px * var(--p)), calc(var(--dy, 0) * 1px * var(--p)));
         }
-        body.sm .acts {
-          flex-wrap: nowrap;
+        header .acts .icn {
+          gap: calc(var(--gap, 6) * 1px * (1 - var(--p)));
+          padding-left: calc(14px - 4px * var(--p));
+          padding-right: calc(14px - 4px * var(--p));
         }
-        body.sm .acts .icn {
-          font-size: 0;
-          gap: 0;
-          padding: 8px 10px;
+        header .acts .icn .lt {
+          display: inline-block;
+          overflow: hidden;
+          white-space: nowrap;
+          max-width: calc(var(--ltw, 60) * 1px * (1 - var(--p)));
+          opacity: calc(1 - var(--p) * 1.8);
         }
-        body.sm nav {
-          margin-top: 6px;
+        header nav {
+          margin-top: calc(16px - 10px * var(--p));
         }
-        body.sm nav.mob button {
-          padding: 8px 0;
+        header nav.mob button {
+          padding-top: calc(12px - 4px * var(--p));
+          padding-bottom: calc(12px - 4px * var(--p));
+        }
+        main {
+          padding-bottom: calc(28px + var(--hd, 0) * 1px);
         }
       }
       nav.mob {
@@ -1401,7 +1413,7 @@
             ></button>
             <button class="p icn" onclick="openLan()" title="Novo lançamento">
               <span data-i="plus"></span>
-              Lançar
+              <span class="lt">Lançar</span>
             </button>
           </div>
         </div>
@@ -1925,6 +1937,7 @@
         }
         fitMob();
         fitDonut();
+        measureHdr();
         stUI();
       }
       MQ.addEventListener("change", () => S && render());
@@ -1963,6 +1976,7 @@
       window.addEventListener("resize", () => {
         fitMob();
         fitDonut();
+        measureHdr();
       });
       let RPG = 0,
         MTABS = [];
@@ -2014,16 +2028,52 @@
         },
         { passive: true },
       );
-      // Celular: cabeçalho reduzido ao rolar para baixo.
+      // Celular: cabeçalho reduzido de forma contínua conforme a rolagem.
+      const ROOT = document.documentElement;
+      function measureHdr() {
+        const keep = ROOT.style.getPropertyValue("--p") || "0";
+        ROOT.style.setProperty("--p", "0");
+        const top = document.querySelector("header .top"),
+          acts = top && top.querySelector(".acts"),
+          tot = $("tot"),
+          lt = acts && acts.querySelector(".lt");
+        if (!MOB() || !top || !acts || !tot || !lt) {
+          ["--dx", "--dy", "--dyt", "--s", "--hd0", "--hd"].forEach((k) => ROOT.style.removeProperty(k));
+          return ROOT.style.setProperty("--p", "0");
+        }
+        const tr = top.getBoundingClientRect(),
+          ar = acts.getBoundingClientRect(),
+          tt = tot.getBoundingClientRect(),
+          gap = parseFloat(getComputedStyle(acts.querySelector(".icn")).columnGap) || 0,
+          ltw = lt.offsetWidth,
+          awf = ar.width - ltw - gap - 8,
+          s = 22 / parseFloat(getComputedStyle(tot).fontSize),
+          hd0 = Math.max(0, tr.height - ar.height);
+        const set = (k, v) => ROOT.style.setProperty(k, String(Math.round(v * 100) / 100));
+        set("--dx", tr.width - awf - (ar.left - tr.left));
+        set("--dy", -(ar.top - tr.top));
+        set("--s", s);
+        set("--dyt", (ar.height - tt.height * s) / 2 - (tt.top - tr.top));
+        set("--ltw", ltw);
+        set("--gap", gap);
+        set("--hd0", hd0);
+        set("--hd", hd0 + 28);
+        ROOT.style.setProperty("--p", keep);
+      }
+      function hdrP() {
+        const p = MOB() ? Math.min(1, Math.max(0, mainEl.scrollTop / 90)) : 0;
+        ROOT.style.setProperty("--p", p.toFixed(3));
+      }
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => S && measureHdr());
+      let hRaf = 0;
       mainEl.addEventListener(
         "scroll",
         () => {
-          if (!MOB()) return document.body.classList.remove("sm");
-          const y = mainEl.scrollTop,
-            sm = document.body.classList.contains("sm");
-          if (!sm && y > 40 && mainEl.scrollHeight - mainEl.clientHeight > 200)
-            document.body.classList.add("sm");
-          else if (sm && y < 4) document.body.classList.remove("sm");
+          if (!hRaf)
+            hRaf = requestAnimationFrame(() => {
+              hRaf = 0;
+              hdrP();
+            });
         },
         { passive: true },
       );
