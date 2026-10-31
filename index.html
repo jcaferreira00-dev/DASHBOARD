@@ -3000,6 +3000,24 @@
             fiadoAtual();
         } catch (e) {}
       }
+      let fiadoNuvemEm = 0,
+        fiadoErro = "";
+      // Lê a cópia do Fiado na nuvem (fiado_usuarios/{uid}). Só leitura; vale a mais recente entre este aparelho e a nuvem.
+      async function fiadoNuvem(forcar) {
+        if (!UID || !window.CloudSync || !CloudSync.buscarFiado || !navigator.onLine) return;
+        if (!forcar && Date.now() - fiadoNuvemEm < 12e4) return;
+        fiadoNuvemEm = Date.now();
+        try {
+          const d = await CloudSync.buscarFiado(UID);
+          fiadoErro = "";
+          if (d) fiadoCapt(d);
+          else fiadoAtual();
+        } catch (e) {
+          fiadoErro = e && e.code === "permission-denied" ? "sem permissão para ler o Fiado (ajustar a regra de fiado_usuarios no Firestore)" : "não consegui ler a nuvem agora";
+          console.error("leitura do Fiado", e);
+          fiadoAtual();
+        }
+      }
       function fiadoAtual() {
         if (typeof TAB !== "undefined" && TAB === "assist" && AS.tab === "fiado") render();
       }
@@ -3040,6 +3058,51 @@
           rm = m % 12;
         return "há " + plr(a, "ano", "anos") + (rm ? " e " + plr(rm, "mês", "meses") : "");
       };
+      /* ---------- Fiado: vencimentos por data (campos novos do Fiado; registros antigos seguem a regra de antes) ---------- */
+      const fdD0 = () => {
+        const h = new Date();
+        h.setHours(0, 0, 0, 0);
+        return h;
+      };
+      const fdParse = (s) => {
+        if (!s) return null;
+        const [y, m, d] = String(s).slice(0, 10).split("-").map(Number);
+        return new Date(y, m - 1, d);
+      };
+      const fdDim = (y, m0) => new Date(y, m0 + 1, 0).getDate();
+      const fdAddM = (d, n) => {
+        const a = new Date(d.getFullYear(), d.getMonth() + n, 1);
+        a.setDate(Math.min(d.getDate(), fdDim(a.getFullYear(), a.getMonth())));
+        return a;
+      };
+      const fdVence = (y, m0, dia) => new Date(y, m0, dia ? Math.min(dia, fdDim(y, m0)) : fdDim(y, m0));
+      const fdDif = (a, b) => Math.round((b - a) / 864e5);
+      const fdDM = (d) => String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+      const fdDur = (n) => {
+        if (n < 31) return plr(n, "dia", "dias");
+        const m = Math.floor(n / 30.44);
+        return m < 12 ? plr(m, "mês", "meses") : plr(Math.floor(m / 12), "ano", "anos") + (m % 12 ? " e " + plr(m % 12, "mês", "meses") : "");
+      };
+      const fdQuando = (n) => (n === 0 ? "hoje" : n === 1 ? "amanhã" : "em " + plr(n, "dia", "dias"));
+      // Parcelado: a 1ª parcela vence em "primeiraParcela" (ou 1 mês após a data do empréstimo) e as outras no mesmo dia, mês a mês.
+      function fvParc(p, tot, pg, v) {
+        const pr = p.primeiraParcela ? fdParse(p.primeiraParcela) : p.dataInicio ? fdAddM(fdParse(p.dataInicio), 1) : null;
+        if (!pr || !(tot > 0)) return null;
+        const h = fdD0(),
+          prox = fdAddM(pr, pg);
+        let venc = 0;
+        for (let k = 0; k < tot; k++) {
+          if (fdAddM(pr, k) < h) venc++;
+          else break;
+        }
+        const n = Math.max(0, venc - pg);
+        return { porData: true, due: prox, diasPara: fdDif(h, prox), atrasoDias: n ? fdDif(prox, h) : 0, nAtr: n, valorAtr: rd2(n * v) };
+      }
+      function fvTxt(f, k) {
+        if (f.nAtr > 0)
+          return " · atrasado há " + fdDur(f.atrasoDias) + (f.nAtr > 1 ? " (" + f.nAtr + (k === "parcelado" ? " parcelas" : " meses") + ")" : "");
+        return f.diasPara != null && f.diasPara >= 0 ? " · vence " + fdDM(f.due) + " (" + fdQuando(f.diasPara) + ")" : "";
+      }
       function fiadoCalc() {
         if (!FI || !Array.isArray(FI.pessoas)) return null;
         const M = hoje().slice(0, 7),
@@ -3081,9 +3144,12 @@
             if (pagoMes) det += " · parcela deste mês já paga";
             else if (!ult && semM >= 2) det += " · nenhuma parcela paga desde " + fmK(ini);
             else if (ult && semM >= 2) det += " · último pagamento em " + fmK(ult);
+            const fx = fvParc(p, tot, pg, v);
+            if (fx) det += fvTxt(fx, "parcelado");
             const x = {
               n: p.nome, k: "parcelado", v, pago: pagoMes, det, resta, rem, tot, pg, fim,
               atraso: !pagoMes && semM >= 2 ? semM : 0,
+              ...(fx || {}),
             };
             it.push(x);
             if (pagoMes) {
@@ -3109,7 +3175,14 @@
                 : df <= 0
                   ? "vence em " + nome + " (este mês)"
                   : "vence em " + plr(df, "mês", "meses") + " (" + nome + ")";
-            it.push({ n: p.nome, k: "anual", v, pago, det, venceMes: !pago && df <= 0, df });
+            let fxa = null;
+            if (p.cicloAno != null && !pago) {
+              const h0 = fdD0(),
+                dueA = fdVence(p.cicloAno, (mv || 1) - 1, +p.diaVencimento || 0),
+                atA = dueA < h0 ? fdDif(dueA, h0) : 0;
+              fxa = { porData: true, due: dueA, diasPara: fdDif(h0, dueA), atrasoDias: atA, nAtr: atA ? 1 : 0, valorAtr: atA ? v : 0 };
+            }
+            it.push({ n: p.nome, k: "anual", v, pago, det: det + (fxa ? fvTxt(fxa, "anual") : ""), venceMes: !pago && df <= 0, df, ...(fxa || {}) });
             if (pagoMes) rec += v;
             if (!pago && df <= 0) {
               pend += v;
@@ -3130,7 +3203,22 @@
             if (h6.length) det += " · pagou " + ok6 + " dos últimos " + h6.length + " meses registrados";
             if (!pago && seq) det += " · " + plr(seq, "mês anterior", "meses anteriores") + " sem pagamento";
             recorr += v;
-            it.push({ n: p.nome, k: "mensal", v, pago, det, atraso: !pago ? seq : 0 });
+            let fxm = null;
+            const diaM = +p.diaVencimento || 0;
+            if (diaM && !pago) {
+              const h0 = fdD0(),
+                dueM = fdVence(h0.getFullYear(), h0.getMonth(), diaM),
+                venceu = dueM < h0;
+              let seqE = seq;
+              if (p.cicloMes && p.cicloMes < M) {
+                const gap = difK(p.cicloMes, M);
+                seqE = gap - 1 + (p.status === "pago" ? 0 : 1 + seq);
+              }
+              const nM = seqE + (venceu ? 1 : 0);
+              fxm = { porData: true, due: dueM, diasPara: fdDif(h0, dueM), atrasoDias: venceu ? fdDif(dueM, h0) : 0, nAtr: nM, valorAtr: rd2(nM * v) };
+              if (nM > 0 && !venceu) fxm.atrasoDias = 1;
+            }
+            it.push({ n: p.nome, k: "mensal", v, pago, det: det + (fxm ? fvTxt(fxm, "mensal") : ""), atraso: !pago ? seq : 0, ...(fxm || {}) });
             if (pago) {
               rec += v;
               qPag++;
@@ -3146,17 +3234,30 @@
             dias = p.data ? fdDias(p.data) : null;
           let det = pago ? "pago" : p.data ? "em aberto " + fdTempo(p.data) : "pagamento único em aberto";
           let juros = 0;
-          if (!pago && +p.taxaAtraso > 0 && dias > 0) {
-            juros = rd2(tv * (p.taxaAtraso / 100) * (dias / 30));
+          const dueU = !pago && p.vencimento ? fdParse(p.vencimento) : null,
+            h0u = fdD0(),
+            atU = dueU && dueU < h0u ? fdDif(dueU, h0u) : 0,
+            diasJ = dueU ? atU : dias;
+          if (dueU) det += fvTxt({ nAtr: atU ? 1 : 0, atrasoDias: atU, diasPara: fdDif(h0u, dueU), due: dueU }, "unico");
+          if (!pago && +p.taxaAtraso > 0 && diasJ > 0) {
+            juros = rd2(tv * (p.taxaAtraso / 100) * (diasJ / 30));
             det += " · juros de atraso estimados em " + R(juros) + " (" + N(p.taxaAtraso) + "% ao mês)";
           }
-          it.push({ n: p.nome, k: "unico", v: tv, pago, det, dias: pago ? 0 : dias || 0, juros });
+          const fxu = dueU
+            ? { porData: true, due: dueU, diasPara: fdDif(h0u, dueU), atrasoDias: atU, nAtr: atU ? 1 : 0, valorAtr: atU ? tv : 0 }
+            : null;
+          it.push({ n: p.nome, k: "unico", v: tv, pago, det, dias: pago ? 0 : dias || 0, juros, ...(fxu || {}) });
           if (!pago) {
             aReceber += tv;
             unicoAb += tv;
           }
         });
-        return { it, M, rec, pend, qPag, qPend, aReceber, unicoAb, recorr, quit };
+        const atrL = it.filter((x) => x.porData && x.nAtr > 0 && (x.k === "parcelado" || !x.pago));
+        return {
+          it, M, rec, pend, qPag, qPend, aReceber, unicoAb, recorr, quit,
+          atrD: atrL.reduce((a, x) => a + x.valorAtr, 0),
+          atrN: atrL.length,
+        };
       }
       function fiadoIns() {
         const c = fiadoCalc(),
@@ -3168,10 +3269,37 @@
               .slice(0, 3)
               .map((x) => x.n)
               .join(", ") + (a.length > 3 ? " e mais " + (a.length - 3) : "");
-        const at = c.it.filter((x) => x.atraso >= 2 && !x.pago),
-          unA = c.it.filter((x) => x.k === "unico" && !x.pago && x.dias > 30),
+        const atD = c.it
+            .filter((x) => x.porData && x.nAtr > 0 && (x.k === "parcelado" || !x.pago))
+            .sort((a, b) => b.atrasoDias - a.atrasoDias),
+          hojeL = c.it
+            .filter((x) => x.porData && x.nAtr === 0 && x.diasPara != null && x.diasPara >= 0 && x.diasPara <= 7 && (x.k === "parcelado" || !x.pago))
+            .sort((a, b) => a.diasPara - b.diasPara),
+          at = c.it.filter((x) => x.atraso >= 2 && !x.pago && !x.porData),
+          unA = c.it.filter((x) => x.k === "unico" && !x.pago && x.dias > 30 && !x.porData),
           pe = c.it.filter((x) => !x.pago && x.k !== "unico" && (x.k !== "anual" || x.venceMes)),
           dia = new Date().getDate();
+        if (atD.length)
+          o.push({
+            lv: "alerta",
+            ...(atD.some((x) => x.atrasoDias >= 30 || x.nAtr >= 2) ? { crit: 1 } : {}),
+            t: "Fiado: " + plr(atD.length, "cobrança atrasada", "cobranças atrasadas") + ", " + R(atD.reduce((a, x) => a + x.valorAtr, 0)) + " para cobrar",
+            d:
+              atD
+                .slice(0, 4)
+                .map((x) => x.n + " (" + R(x.valorAtr) + (x.nAtr > 1 ? ", " + x.nAtr + (x.k === "parcelado" ? " parcelas" : " meses") : "") + ", há " + fdDur(x.atrasoDias) + ")")
+                .join("; ") +
+              (atD.length > 4 ? " e mais " + (atD.length - 4) : "") +
+              ". Dinheiro que já devia ter entrado: vale cobrar.",
+            act,
+          });
+        if (hojeL.length)
+          o.push({
+            lv: hojeL.some((x) => x.diasPara === 0) ? "alerta" : "info",
+            t: "Fiado: " + plr(hojeL.length, "pagamento previsto", "pagamentos previstos") + " até 7 dias (" + R(hojeL.reduce((a, x) => a + x.v, 0)) + ")",
+            d: hojeL.slice(0, 5).map((x) => x.n + " " + R(x.v) + " " + fdQuando(x.diasPara)).join("; ") + (hojeL.length > 5 ? " e mais " + (hojeL.length - 5) : "") + ".",
+            act,
+          });
         if (at.length)
           o.push({
             lv: "alerta", crit: 1,
@@ -3213,7 +3341,7 @@
         return o;
       }
       function fiadoRow(x) {
-        const lv = x.pago ? "ok" : x.atraso >= 2 ? "crit" : x.atraso || x.dias > 30 ? "alerta" : "info",
+        const lv = x.pago && !(x.k === "parcelado" && x.nAtr > 0) ? "ok" : x.atraso >= 2 || x.atrasoDias >= 30 ? "crit" : x.atraso || x.dias > 30 || x.atrasoDias > 0 ? "alerta" : "info",
           tg = x.k === "parcelado" ? "Parcelado" : x.k === "anual" ? "Anual" : x.k === "unico" ? "Avulso" : "Mensal",
           bar =
             x.k === "parcelado" && x.tot
@@ -3224,7 +3352,7 @@
       function tFiado() {
         const c = fiadoCalc();
         if (!c || (!c.it.length && !c.quit.length))
-          return `<div class="card emp">${c ? "O app Fiado ainda não tem pessoas cadastradas." : "Ainda não encontrei os dados do app Fiado. Abra o Fiado uma vez, no mesmo aparelho ou com a mesma conta, e volte aqui."}<div class="pg"><button onclick="fiadoLer();render()">Atualizar</button></div></div>`;
+          return `<div class="card emp">${c ? "O app Fiado ainda não tem pessoas cadastradas." : "Ainda não encontrei os dados do app Fiado. Abra o Fiado uma vez e entre na mesma conta nos dois apps (a leitura vem da nuvem)." + (fiadoErro ? " Motivo: " + fiadoErro + "." : "")}<div class="pg"><button onclick="fiadoLer();render()">Atualizar</button></div></div>`;
         const tot = c.rec + c.pend,
           pc = tot ? (c.rec / tot) * 100 : 0,
           nao = c.it.filter((x) => !x.pago && x.k !== "unico" && (x.k !== "anual" || x.venceMes)),
@@ -3232,7 +3360,7 @@
           par = c.it.filter((x) => x.k === "parcelado").sort((a, b) => a.rem - b.rem),
           uni = c.it.filter((x) => x.k === "unico" && !x.pago),
           ana = c.it.filter((x) => x.k === "anual" && !x.venceMes),
-          ord = (a) => a.slice().sort((x, y) => (y.atraso || 0) - (x.atraso || 0) || x.n.localeCompare(y.n, "pt-BR")),
+          ord = (a) => a.slice().sort((x, y) => (y.atraso || 0) - (x.atraso || 0) || (y.atrasoDias || 0) - (x.atrasoDias || 0) || x.n.localeCompare(y.n, "pt-BR")),
           mes = MESL[+c.M.slice(5) - 1] + " de " + c.M.slice(0, 4),
           fonte =
             "Fonte: " + FI.origem + ", dados do Fiado de " +
@@ -3245,7 +3373,7 @@
           .slice(0, 3)
           .map((x) => x.n + " em " + fmK(x.fim))
           .join("; ");
-        return `<div class="card"><h4>Fiado · ${mes}</h4><div class="three"><div><div class="lb">Recebido no mês</div><b class="sr m up">${R(c.rec)}</b></div><div><div class="lb">Falta receber no mês</div><b class="sr m ${c.pend ? "dnc" : ""}">${R(c.pend)}</b></div><div><div class="lb">Total a receber</div><b class="sr m">${R(c.aReceber)}</b></div></div><div class="bar g" style="margin-top:14px"><i style="width:${pc.toFixed(1)}%"></i></div><div class="note" style="margin:0">${c.qPag} de ${c.qPag + c.qPend} já pagaram neste mês (${P(pc)} do valor).${c.recorr ? " Recorrência mensal total: " + R(c.recorr) + "." : ""}${prox ? " Próximas quitações previstas: " + esc(prox) + "." : ""}${c.unicoAb ? " Avulsos em aberto: " + R(c.unicoAb) + "." : ""}</div></div>` +
+        return `<div class="card"><h4>Fiado · ${mes}</h4><div class="three"><div><div class="lb">Recebido no mês</div><b class="sr m up">${R(c.rec)}</b></div><div><div class="lb">Falta receber no mês</div><b class="sr m ${c.pend ? "dnc" : ""}">${R(c.pend)}</b></div><div><div class="lb">Total a receber</div><b class="sr m">${R(c.aReceber)}</b></div></div><div class="bar g" style="margin-top:14px"><i style="width:${pc.toFixed(1)}%"></i></div><div class="note" style="margin:0">${c.qPag} de ${c.qPag + c.qPend} já pagaram neste mês (${P(pc)} do valor).${c.recorr ? " Recorrência mensal total: " + R(c.recorr) + "." : ""}${prox ? " Próximas quitações previstas: " + esc(prox) + "." : ""}${c.unicoAb ? " Avulsos em aberto: " + R(c.unicoAb) + "." : ""}${c.atrN ? " Atrasado pelo vencimento: " + R(c.atrD) + " (" + plr(c.atrN, "cobrança", "cobranças") + ")." : ""}</div></div>` +
           cd("Ainda não pagaram neste mês", ord(nao)) +
           cd("Já pagaram neste mês", sim) +
           cd("Parcelados: quanto falta", par) +
@@ -5626,6 +5754,18 @@
               nuvemOk = true;
               remote(d);
             });
+            fiadoNuvem(true);
+            if (CloudSync.ouvirFiado)
+              CloudSync.ouvirFiado(
+                u.uid,
+                (d) => {
+                  fiadoErro = "";
+                  fiadoCapt(d);
+                },
+                (e) => {
+                  fiadoErro = e && e.code === "permission-denied" ? "sem permissão para ler o Fiado (ajustar a regra de fiado_usuarios no Firestore)" : "não consegui ouvir o Fiado";
+                },
+              );
             // Acompanha o app de contas ao vivo: quando ele salvar, o Dashboards atualiza sozinho.
             if (CloudSync.ouvirGastos)
               CloudSync.ouvirGastos(
@@ -5700,10 +5840,14 @@
         }
       });
       document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible" && fiadoLer()) fiadoAtual();
+        if (document.visibilityState === "visible") {
+          if (fiadoLer()) fiadoAtual();
+          fiadoNuvem();
+        }
       });
       setInterval(() => {
         if (fiadoLer()) fiadoAtual();
+        fiadoNuvem();
       }, 30000);
       if (viraAno()) save();
       render();

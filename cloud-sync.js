@@ -50,6 +50,7 @@ const db = initializeFirestore(app, {
 
 let pararDeOuvirSnapshot = null;
 let pararDeOuvirGastosSnap = null;
+let pararDeOuvirFiadoSnap = null;
 
 function referenciaDoUsuario(uid) {
   // Coleção exclusiva deste app — cada app da mesma conta Firebase
@@ -61,6 +62,12 @@ function referenciaDoUsuario(uid) {
 // nunca grava nessa coleção. Os dados ficam no campo "gestaoFinanceira".
 function referenciaDoAppDeContas(uid) {
   return doc(db, "gastosmensais_usuarios", uid);
+}
+
+// Documento do app Fiado. Este app SÓ LÊ daqui: nunca grava nessa coleção.
+// Os dados ficam no campo "caderneta" ({ pessoas, updatedAt }).
+function referenciaDoFiado(uid) {
+  return doc(db, "fiado_usuarios", uid);
 }
 
 // ===========================
@@ -131,6 +138,27 @@ window.CloudSync = {
     }, (e) => { if (aoErrar) aoErrar(e); });
   },
 
+  // Lê os dados do Fiado (doc inteiro; o campo útil é "caderneta"). Retorna null se o documento não existe.
+  // Lança erro se não foi possível ler (permissão, rede...).
+  async buscarFiado(uid) {
+    let snap;
+    try { snap = await getDocFromServer(referenciaDoFiado(uid)); }
+    catch (e) {
+      if (e && e.code === "permission-denied") throw e;
+      snap = await getDoc(referenciaDoFiado(uid));
+    }
+    return snap.exists() ? snap.data() : null;
+  },
+
+  // Avisa quando o Fiado salvar algo novo (qualquer aparelho). Ignora o que veio só do cache do aparelho.
+  ouvirFiado(uid, callback, aoErrar) {
+    if (pararDeOuvirFiadoSnap) pararDeOuvirFiadoSnap();
+    pararDeOuvirFiadoSnap = onSnapshot(referenciaDoFiado(uid), (snap) => {
+      if (snap.metadata.fromCache) return;
+      if (snap.exists()) callback(snap.data());
+    }, (e) => { if (aoErrar) aoErrar(e); });
+  },
+
   // Só repassa mudanças confirmadas pelo servidor: ignora o "eco" do próprio salvamento
   // e a cópia antiga guardada no aparelho (que poderia estar atrás da nuvem).
   ouvirMudancas(uid, callback, aoErrar) {
@@ -149,6 +177,10 @@ window.CloudSync = {
     if (pararDeOuvirGastosSnap) {
       pararDeOuvirGastosSnap();
       pararDeOuvirGastosSnap = null;
+    }
+    if (pararDeOuvirFiadoSnap) {
+      pararDeOuvirFiadoSnap();
+      pararDeOuvirFiadoSnap = null;
     }
   }
 };
